@@ -156,17 +156,25 @@ actor HighlightEngine {
            let language = client.language(forIdentifier: id) {
             return language
         }
-        // Extensionless files with no name/UTI identity (dotfiles, rc files)
-        // are classified by content structure, with the generic spec as a
-        // floor so they always get at least minimal coloring. Files WITH an
-        // unmatched extension keep their existing plain/decline behavior.
+        // Content classification and the generic floor apply when the type
+        // system has no real opinion about the file: extensionless names
+        // (dotfiles, rc files) and unknown extensions that only earned a
+        // dynamic or catch-all UTI (.env.local, .xyz). Files with a
+        // system-declared type (like .txt → public.plain-text) never get
+        // second-guessed by content.
         let isExtensionless = hint.fileExtension?.isEmpty != false
-        if isExtensionless,
-           let id = LanguageDetector.contentLanguageID(forTextPrefix: textPrefix),
-           let language = client.language(forIdentifier: id) {
-            return language
+        let typeSystemHasNoOpinion = hint.contentTypeIdentifiers.isEmpty
+            || hint.contentTypeIdentifiers.allSatisfy { $0.hasPrefix("dyn.") || $0 == "public.data" }
+        if isExtensionless || typeSystemHasNoOpinion {
+            if let id = LanguageDetector.contentLanguageID(forTextPrefix: textPrefix),
+               let language = client.language(forIdentifier: id) {
+                return language
+            }
+            if let language = client.language(forIdentifier: "Xcode.SourceCodeLanguage.Generic") {
+                return language
+            }
         }
-        if hint.conformsToSourceCode || isExtensionless,
+        if hint.conformsToSourceCode,
            let language = client.language(forIdentifier: "Xcode.SourceCodeLanguage.Generic") {
             return language
         }

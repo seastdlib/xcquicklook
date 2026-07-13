@@ -101,8 +101,22 @@ nonisolated enum LanguageDetector {
             return "Xcode.SourceCodeLanguage.XML"
         }
 
-        // A YAML document-start marker is unambiguous.
+        // A YAML document-start marker — unless it opens markdown front
+        // matter: a closing ---/... fence with body text after it means the
+        // YAML is only the header, and coloring the whole file as YAML would
+        // paint every markdown heading as a comment.
         if trimmed.hasPrefix("---\n") || trimmed.hasPrefix("---\r\n") || trimmed.hasPrefix("--- ") {
+            let lines = Array(trimmed.split(separator: "\n", omittingEmptySubsequences: false).prefix(40))
+            for index in lines.indices.dropFirst() {
+                let line = lines[index].trimmingCharacters(in: .whitespacesAndNewlines)
+                if line == "---" || line == "..." {
+                    let hasBody = lines[(index + 1)...].contains {
+                        !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    }
+                    if hasBody { return "Xcode.SourceCodeLanguage.Markdown" }
+                    break
+                }
+            }
             return "Xcode.SourceCodeLanguage.YAML"
         }
 
@@ -128,8 +142,13 @@ nonisolated enum LanguageDetector {
             "function ", "if [", "if [[", "case ", "esac", "fi", "then",
             "done", "for ", "while ", "echo ", "umask ", "ulimit ", "unset ",
         ]
-        for rawLine in trimmed.split(separator: "\n", maxSplits: 80, omittingEmptySubsequences: true) {
-            let line = rawLine.trimmingCharacters(in: .whitespaces)
+        // Full split then prefix: split(maxSplits:) would return the entire
+        // remainder as one mega-"line", so a long comment header (oh-my-zsh
+        // templates) would swallow every line that carries actual votes.
+        // Trimming must include newlines so CRLF input doesn't leave \r on
+        // line ends and break suffix checks.
+        for rawLine in trimmed.split(separator: "\n", omittingEmptySubsequences: true).prefix(120) {
+            let line = rawLine.trimmingCharacters(in: .whitespacesAndNewlines)
             if line.isEmpty { continue }
             // Include directives with their bracket/quote are unambiguously
             // C-family; a shell comment "#include stuff" never has one.
@@ -145,7 +164,10 @@ nonisolated enum LanguageDetector {
                 continue
             }
             if line.hasPrefix("#") { continue }
-            if shellStarters.contains(where: line.hasPrefix) || line.contains("$(") || line.contains("${") {
+            // Starter keywords, expansions, POSIX function definitions, and
+            // quoted dollar-variables all vote shell.
+            if shellStarters.contains(where: line.hasPrefix) || line.contains("$(") || line.contains("${")
+                || line.contains("() {") || line.contains("\"$") || line.contains("'$") {
                 shell += 1
                 continue
             }

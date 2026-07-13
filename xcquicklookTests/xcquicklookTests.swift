@@ -151,10 +151,12 @@ struct DetectionTests {
         #expect(hasSpan(result, type: "xcode.syntax.number", covering: "42", in: text))
     }
 
-    @Test func unknownWithoutFallbackThrows() async {
-        await #expect(throws: HighlightEngine.EngineError.self) {
-            _ = try await spans("some plain text", ext: "xyzunknown")
-        }
+    @Test func unknownExtensionGetsGenericFloor() async throws {
+        // Unknown extensions earn only a dynamic UTI, so the type system has
+        // no opinion and content classification + the generic floor apply.
+        let text = "some plain text with 42 in it"
+        let result = try await spans(text, ext: "xyzunknown")
+        #expect(hasSpan(result, type: "xcode.syntax.number", covering: "42", in: text))
     }
 
     @Test func genericSourceCodeFallback() async throws {
