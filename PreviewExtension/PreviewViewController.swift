@@ -92,10 +92,12 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
         // appends never move content the user is already looking at.
         var displayText = text
         var pendingLines: [Substring] = []
+        var reformatterSpans: [TokenSpan]?
         if Self.isJSONFamily(contentType: contentType, url: url),
            let job = JSONReformatter.job(for: text) {
             displayText = job.initial
             pendingLines = job.remaining
+            reformatterSpans = job.initialSpans
         }
 
         // Instant content — the preview is ready as soon as we return.
@@ -114,33 +116,55 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
 
         applyTask = Task { [weak self, dark = isDarkAppearance] in
             do {
-                // Stream the remaining reformat work: format off the main
-                // actor in chunks, append on it. Line slices are Sendable
-                // views into `text`, so no copies are made up front.
-                var fullText = displayText
-                var index = 0
-                while index < pendingLines.count {
-                    let end = min(index + 400, pendingLines.count)
-                    let slice = Array(pendingLines[index..<end])
-                    let chunk = await Task.detached(priority: .userInitiated) {
-                        var formatted = ""
-                        for line in slice {
-                            formatted += JSONReformatter.reindent(line)
-                            formatted += "\n\n"
-                        }
-                        return formatted
-                    }.value
-                    guard !Task.isCancelled, let self else { return }
-                    self.textView.textStorage?.append(
-                        NSAttributedString(string: chunk, attributes: self.defaultAttributes())
-                    )
-                    fullText += chunk
-                    index = end
-                    await Task.yield()
+                let theme = try await HighlightEngine.shared.theme(dark: dark)
+
+                if var accumulated = reformatterSpans {
+                    // Reformatted JSON: the formatter is the authority on
+                    // token spans (the display text is no longer valid JSON —
+                    // injected newlines would terminate the grammar's string
+                    // tokens). Format remaining lines off the main actor in
+                    // chunks and colorize each chunk as it appends, so even
+                    // huge transcripts get full progressive coloring in O(n).
+                    guard let self else { return }
+                    self.spans = accumulated
+                    await self.apply(spans: accumulated, theme: theme)
+                    var index = 0
+                    while index < pendingLines.count {
+                        let end = min(index + 400, pendingLines.count)
+                        let slice = Array(pendingLines[index..<end])
+                        let offset = self.textView.textStorage?.length ?? 0
+                        let chunk = await Task.detached(priority: .userInitiated) { () -> (String, [TokenSpan]) in
+                            var formatted = ""
+                            var spans: [TokenSpan] = []
+                            for line in slice {
+                                let (text, lineSpans) = JSONReformatter.reindentWithSpans(
+                                    line, utf16Offset: offset + formatted.utf16.count
+                                )
+                                formatted += text
+                                formatted += "\n\n"
+                                spans.append(contentsOf: lineSpans)
+                            }
+                            return (formatted, spans)
+                        }.value
+                        guard !Task.isCancelled else { return }
+                        self.textView.textStorage?.append(
+                            NSAttributedString(string: chunk.0, attributes: self.defaultAttributes())
+                        )
+                        await self.apply(spans: chunk.1, theme: theme)
+                        accumulated.append(contentsOf: chunk.1)
+                        self.spans = accumulated
+                        index = end
+                        await Task.yield()
+                    }
+                    self.highlighted = true
+                    DebugLog.log("reformatted+colored \(url.lastPathComponent): \(accumulated.count) spans")
+                    if self.isDarkAppearance != dark {
+                        self.reapplyForCurrentAppearance()
+                    }
+                    return
                 }
 
-                let theme = try await HighlightEngine.shared.theme(dark: dark)
-                let spans = try await HighlightEngine.shared.tokenize(text: fullText, hint: hint, theme: theme)
+                let spans = try await HighlightEngine.shared.tokenize(text: displayText, hint: hint, theme: theme)
                 DebugLog.log("tokenized \(url.lastPathComponent): \(spans.count) spans")
                 guard !Task.isCancelled, let self else { return }
                 self.spans = spans

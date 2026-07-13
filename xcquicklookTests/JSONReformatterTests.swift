@@ -19,11 +19,12 @@ struct JSONReformatterTests {
     }
 
     @Test func preservesBytesInsideStrings() {
-        // Braces, colons, commas, escapes, and unicode inside strings must
-        // pass through untouched — only inter-token whitespace changes.
-        let input = "{\"msg\":\"a{b}[c],d:e \\\" \\\\ \\n 日本語 🎉\",\"n\":1.2500e-3}"
+        // Braces, colons, commas, escapes (except \n, which deliberately
+        // becomes a real break), and unicode inside strings pass through
+        // untouched.
+        let input = "{\"msg\":\"a{b}[c],d:e \\\" \\\\ 日本語 🎉\",\"n\":1.2500e-3}"
         let out = JSONReformatter.reindent(input[...])
-        #expect(out.contains("\"a{b}[c],d:e \\\" \\\\ \\n 日本語 🎉\""))
+        #expect(out.contains("\"a{b}[c],d:e \\\" \\\\ 日本語 🎉\""))
         #expect(out.contains("1.2500e-3"))
     }
 
@@ -44,13 +45,56 @@ struct JSONReformatterTests {
         let line = "{\"role\":\"assistant\",\"content\":\"" + String(repeating: "x", count: 600) + "\"}"
         let text = Array(repeating: line, count: 500).joined(separator: "\n")
         let job = JSONReformatter.job(for: text)
-        let (initial, remaining) = try! #require(job)
+        let (initial, initialSpans, remaining) = try! #require(job)
         #expect(initial.contains("\"role\": \"assistant\""))
+        #expect(!initialSpans.isEmpty)
         #expect(!remaining.isEmpty)
+        // Span coordinates are valid within the head text.
+        let ns = initial as NSString
+        for span in initialSpans {
+            #expect(NSMaxRange(span.range) <= ns.length)
+        }
         // Already-pretty JSON is left alone.
         #expect(JSONReformatter.job(for: initial) == nil)
         // Non-JSON text is left alone.
         #expect(JSONReformatter.job(for: "plain text\nlines here\n") == nil)
+    }
+
+    @Test func escapedNewlinesBecomeAlignedLineBreaks() {
+        let input = "{\"content\":\"first line\\nsecond line\\nthird\"}"
+        let (text, spans) = JSONReformatter.reindentWithSpans(input[...], utf16Offset: 0)
+        // Real line breaks, continuation aligned to the string's start column.
+        let lines = text.components(separatedBy: "\n")
+        let firstIndex = try! #require(lines.firstIndex(where: { $0.contains("first line") }))
+        let opening = lines[firstIndex]
+        let column = (opening as NSString).range(of: "\"first").location + 1
+        #expect(lines[firstIndex + 1] == String(repeating: " ", count: column) + "second line")
+        #expect(lines[firstIndex + 2] == String(repeating: " ", count: column) + "third\"")
+        // The whole logical string — breaks and indents included — is ONE
+        // string span, so highlighting covers every continuation line.
+        let stringSpans = spans.filter { $0.nodeTypeName == "xcode.syntax.string" }
+        let value = try! #require(stringSpans.last)
+        let covered = (text as NSString).substring(with: value.range)
+        #expect(covered.hasPrefix("\"first line\n"))
+        #expect(covered.hasSuffix("third\""))
+        // Escaped backslash-n (\\n in source, i.e. literal backslash + n)
+        // must NOT break: it is content, not a newline escape.
+        let literal = "{\"path\":\"a\\\\nb\"}"
+        let (text2, _) = JSONReformatter.reindentWithSpans(literal[...], utf16Offset: 0)
+        #expect(text2.contains("a\\\\nb"))
+    }
+
+    @Test func spanOffsetsAreUTF16CorrectWithAstralContent() {
+        let input = "{\"emoji\":\"🎉🎉\",\"n\":42,\"ok\":true}"
+        let (text, spans) = JSONReformatter.reindentWithSpans(input[...], utf16Offset: 0)
+        let ns = text as NSString
+        for span in spans {
+            #expect(NSMaxRange(span.range) <= ns.length)
+        }
+        let number = try! #require(spans.first(where: { $0.nodeTypeName == "xcode.syntax.number" }))
+        #expect(ns.substring(with: number.range) == "42")
+        let keyword = try! #require(spans.first(where: { $0.nodeTypeName == "xcode.syntax.keyword" }))
+        #expect(ns.substring(with: keyword.range) == "true")
     }
 
     @Test func reindentThroughputSupportsStreaming() {
