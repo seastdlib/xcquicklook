@@ -1,0 +1,10 @@
+// Unit test bundle (standalone, no test host, so tests run unsandboxed
+// and can read the repo's SourceModel.framework copy and /Applications/Xcode.app).
+
+PRODUCT_BUNDLE_IDENTIFIER = com.seastdlib.xcquicklookTests
+GENERATE_INFOPLIST_FILE = YES
+
+SWIFT_OBJC_BRIDGING_HEADER = $(SRCROOT)/HighlightCore/SourceModelShim.h
+
+SWIFT_EMIT_LOC_STRINGS = NO
+STRING_CATALOG_GENERATE_SYMBOLS = NO

@@ -1,0 +1,382 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 110;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		D000000000000000000000AC /* PreviewExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D000000000000000000000A2 /* PreviewExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		D000000000000000000000AD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CA3AAC94300448850074DE5D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D000000000000000000000A1;
+			remoteInfo = PreviewExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		D000000000000000000000AB /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			dstPath = "";
+			dstSubfolder = PlugIns;
+			files = (
+				D000000000000000000000AC /* PreviewExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		CA3AAC9C300448850074DE5D /* xcquicklook.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = xcquicklook.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CA3AACA9300448860074DE5D /* xcquicklookTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = xcquicklookTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D000000000000000000000A2 /* PreviewExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PreviewExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		D000000000000000000000B1 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
+		D000000000000000000000B2 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		D000000000000000000000B3 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		D000000000000000000000B4 /* App.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = App.xcconfig; sourceTree = "<group>"; };
+		D000000000000000000000B5 /* PreviewExtension.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = PreviewExtension.xcconfig; sourceTree = "<group>"; };
+		D000000000000000000000B6 /* Tests.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Tests.xcconfig; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		D000000000000000000000B8 /* Exceptions for "PreviewExtension" folder in "PreviewExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = D000000000000000000000A1 /* PreviewExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		CA3AAC9E300448850074DE5D /* xcquicklook */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = xcquicklook;
+			sourceTree = "<group>";
+		};
+		CA3AACAC300448860074DE5D /* xcquicklookTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = xcquicklookTests;
+			sourceTree = "<group>";
+		};
+		D000000000000000000000A6 /* PreviewExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				D000000000000000000000B8 /* Exceptions for "PreviewExtension" folder in "PreviewExtension" target */,
+			);
+			path = PreviewExtension;
+			sourceTree = "<group>";
+		};
+		D000000000000000000000A7 /* HighlightCore */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = HighlightCore;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		CA3AAC99300448850074DE5D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		CA3AACA6300448860074DE5D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		D000000000000000000000A4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		CA3AAC93300448850074DE5D = {
+			isa = PBXGroup;
+			children = (
+				D000000000000000000000B7 /* Config */,
+				D000000000000000000000A7 /* HighlightCore */,
+				D000000000000000000000A6 /* PreviewExtension */,
+				CA3AAC9E300448850074DE5D /* xcquicklook */,
+				CA3AACAC300448860074DE5D /* xcquicklookTests */,
+				CA3AAC9D300448850074DE5D /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CA3AAC9D300448850074DE5D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				CA3AAC9C300448850074DE5D /* xcquicklook.app */,
+				CA3AACA9300448860074DE5D /* xcquicklookTests.xctest */,
+				D000000000000000000000A2 /* PreviewExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D000000000000000000000B7 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				D000000000000000000000B1 /* Shared.xcconfig */,
+				D000000000000000000000B2 /* Debug.xcconfig */,
+				D000000000000000000000B3 /* Release.xcconfig */,
+				D000000000000000000000B4 /* App.xcconfig */,
+				D000000000000000000000B5 /* PreviewExtension.xcconfig */,
+				D000000000000000000000B6 /* Tests.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		CA3AAC9B300448850074DE5D /* xcquicklook */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CA3AACBB300448860074DE5D /* Build configuration list for PBXNativeTarget "xcquicklook" */;
+			buildPhases = (
+				CA3AAC98300448850074DE5D /* Sources */,
+				CA3AAC99300448850074DE5D /* Frameworks */,
+				CA3AAC9A300448850074DE5D /* Resources */,
+				D000000000000000000000AB /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D000000000000000000000AE /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CA3AAC9E300448850074DE5D /* xcquicklook */,
+			);
+			name = xcquicklook;
+			productName = xcquicklook;
+			productReference = CA3AAC9C300448850074DE5D /* xcquicklook.app */;
+			productType = "com.apple.product-type.application";
+		};
+		CA3AACA8300448860074DE5D /* xcquicklookTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CA3AACBE300448860074DE5D /* Build configuration list for PBXNativeTarget "xcquicklookTests" */;
+			buildPhases = (
+				CA3AACA5300448860074DE5D /* Sources */,
+				CA3AACA6300448860074DE5D /* Frameworks */,
+				CA3AACA7300448860074DE5D /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				CA3AACAC300448860074DE5D /* xcquicklookTests */,
+				D000000000000000000000A7 /* HighlightCore */,
+			);
+			name = xcquicklookTests;
+			productName = xcquicklookTests;
+			productReference = CA3AACA9300448860074DE5D /* xcquicklookTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		D000000000000000000000A1 /* PreviewExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D000000000000000000000A8 /* Build configuration list for PBXNativeTarget "PreviewExtension" */;
+			buildPhases = (
+				D000000000000000000000A3 /* Sources */,
+				D000000000000000000000A4 /* Frameworks */,
+				D000000000000000000000A5 /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				D000000000000000000000A6 /* PreviewExtension */,
+				D000000000000000000000A7 /* HighlightCore */,
+			);
+			name = PreviewExtension;
+			productName = PreviewExtension;
+			productReference = D000000000000000000000A2 /* PreviewExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		CA3AAC94300448850074DE5D /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2700;
+				LastUpgradeCheck = 2700;
+				TargetAttributes = {
+					CA3AAC9B300448850074DE5D = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					CA3AACA8300448860074DE5D = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					D000000000000000000000A1 = {
+						CreatedOnToolsVersion = 27.0;
+					};
+				};
+			};
+			buildConfigurationList = CA3AAC97300448850074DE5D /* Build configuration list for PBXProject "xcquicklook" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = CA3AAC93300448850074DE5D;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = CA3AAC9D300448850074DE5D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				CA3AAC9B300448850074DE5D /* xcquicklook */,
+				D000000000000000000000A1 /* PreviewExtension */,
+				CA3AACA8300448860074DE5D /* xcquicklookTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		CA3AAC9A300448850074DE5D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		CA3AACA7300448860074DE5D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		D000000000000000000000A5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		CA3AAC98300448850074DE5D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		CA3AACA5300448860074DE5D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		D000000000000000000000A3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D000000000000000000000AE /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D000000000000000000000A1 /* PreviewExtension */;
+			targetProxy = D000000000000000000000AD /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		CA3AACB9300448860074DE5D /* Debug configuration for PBXProject "xcquicklook" */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = D000000000000000000000B2 /* Debug.xcconfig */;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		CA3AACBA300448860074DE5D /* Release configuration for PBXProject "xcquicklook" */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = D000000000000000000000B3 /* Release.xcconfig */;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		CA3AACBC300448860074DE5D /* Debug configuration for PBXNativeTarget "xcquicklook" */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = D000000000000000000000B4 /* App.xcconfig */;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		CA3AACBD300448860074DE5D /* Release configuration for PBXNativeTarget "xcquicklook" */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = D000000000000000000000B4 /* App.xcconfig */;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		CA3AACBF300448860074DE5D /* Debug configuration for PBXNativeTarget "xcquicklookTests" */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = D000000000000000000000B6 /* Tests.xcconfig */;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		CA3AACC0300448860074DE5D /* Release configuration for PBXNativeTarget "xcquicklookTests" */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = D000000000000000000000B6 /* Tests.xcconfig */;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		D000000000000000000000A9 /* Debug configuration for PBXNativeTarget "PreviewExtension" */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = D000000000000000000000B5 /* PreviewExtension.xcconfig */;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		D000000000000000000000AF /* Release configuration for PBXNativeTarget "PreviewExtension" */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = D000000000000000000000B5 /* PreviewExtension.xcconfig */;
+			buildSettings = {
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		CA3AAC97300448850074DE5D /* Build configuration list for PBXProject "xcquicklook" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CA3AACB9300448860074DE5D /* Debug configuration for PBXProject "xcquicklook" */,
+				CA3AACBA300448860074DE5D /* Release configuration for PBXProject "xcquicklook" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		CA3AACBB300448860074DE5D /* Build configuration list for PBXNativeTarget "xcquicklook" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CA3AACBC300448860074DE5D /* Debug configuration for PBXNativeTarget "xcquicklook" */,
+				CA3AACBD300448860074DE5D /* Release configuration for PBXNativeTarget "xcquicklook" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		CA3AACBE300448860074DE5D /* Build configuration list for PBXNativeTarget "xcquicklookTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CA3AACBF300448860074DE5D /* Debug configuration for PBXNativeTarget "xcquicklookTests" */,
+				CA3AACC0300448860074DE5D /* Release configuration for PBXNativeTarget "xcquicklookTests" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		D000000000000000000000A8 /* Build configuration list for PBXNativeTarget "PreviewExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D000000000000000000000A9 /* Debug configuration for PBXNativeTarget "PreviewExtension" */,
+				D000000000000000000000AF /* Release configuration for PBXNativeTarget "PreviewExtension" */,
+			);
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = CA3AAC94300448850074DE5D /* Project object */;
+	validationLevel = 1;
+}

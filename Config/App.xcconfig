@@ -1,0 +1,23 @@
+// Host application target.
+
+PRODUCT_BUNDLE_IDENTIFIER = com.seastdlib.xcquicklook
+GENERATE_INFOPLIST_FILE = YES
+
+// The App Sandbox requirement applies to the extension, not its host app;
+// keeping the host unsandboxed also lets code snippets drive qlmanage
+// and pluginkit during development.
+ENABLE_APP_SANDBOX = NO
+ENABLE_USER_SELECTED_FILES = readonly
+
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon
+ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor
+COMBINE_HIDPI_IMAGES = YES
+ENABLE_PREVIEWS = YES
+
+INFOPLIST_KEY_NSHumanReadableCopyright =
+INFOPLIST_KEY_LSApplicationCategoryType = public.app-category.developer-tools
+
+LD_RUNPATH_SEARCH_PATHS = $(inherited) @executable_path/../Frameworks
+
+SWIFT_EMIT_LOC_STRINGS = YES
+STRING_CATALOG_GENERATE_SYMBOLS = YES

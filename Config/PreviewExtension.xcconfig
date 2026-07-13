@@ -1,0 +1,13 @@
+// QuickLook preview extension target.
+
+PRODUCT_BUNDLE_IDENTIFIER = com.seastdlib.xcquicklook.PreviewExtension
+GENERATE_INFOPLIST_FILE = YES
+INFOPLIST_FILE = PreviewExtension/Info.plist
+
+ENABLE_APP_SANDBOX = YES
+ENABLE_USER_SELECTED_FILES = readonly
+
+SWIFT_OBJC_BRIDGING_HEADER = $(SRCROOT)/HighlightCore/SourceModelShim.h
+
+SKIP_INSTALL = YES
+SWIFT_EMIT_LOC_STRINGS = YES

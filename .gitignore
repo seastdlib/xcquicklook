@@ -1,0 +1,11 @@
+# Local copy of Xcode's private framework (dev asset, not source)
+SourceModel.framework/
+
+# macOS
+.DS_Store
+
+# Xcode
+xcuserdata/
+DerivedData/
+build/
+*.xcuserstate
