@@ -113,7 +113,12 @@ nonisolated enum JSONReformatter {
                 i += 1
             case 0x20, 0x09, 0x0A, 0x0D:  // collapse existing whitespace
                 i += 1
-            case 0x2D, 0x30...0x39:  // number token
+            case 0x2D, 0x30...0x39:  // number token (a bare '-' is not one)
+                if byte == 0x2D, i + 1 >= bytes.count || !(0x30...0x39).contains(bytes[i + 1]) {
+                    append(byte)
+                    i += 1
+                    continue
+                }
                 let spanStart = utf16Pos
                 while i < bytes.count, isNumberByte(bytes[i]) {
                     append(bytes[i])

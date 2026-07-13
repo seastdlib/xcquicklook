@@ -104,8 +104,10 @@ nonisolated struct Theme: Sendable, Equatable {
            let secondary = fontSize(plist["DVTMarkupTextSecondaryHeadingFont"] as? String),
            let other = fontSize(plist["DVTMarkupTextOtherHeadingFont"] as? String),
            secondary > 0, other > 0 {
-            let h1 = secondary / normal
-            let h2 = other / normal
+            // Floor every scale at body size: a theme whose heading fonts are
+            // smaller than its body must not shrink headings.
+            let h1 = max(secondary / normal, 1.0)
+            let h2 = max(other / normal, 1.0)
             let h3 = max(h2 * (h2 / h1), 1.0)
             theme.headingScales = [h1, h2, h3]
         }

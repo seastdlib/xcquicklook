@@ -128,8 +128,9 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
                     // tokens). Format remaining lines off the main actor in
                     // chunks and colorize each chunk as it appends, so even
                     // huge transcripts get full progressive coloring in O(n).
-                    guard let self else { return }
-                    self.spans = accumulated
+                    // The theme fetch above suspends: a reused controller may
+                    // have cancelled this task and replaced the storage.
+                    guard !Task.isCancelled, let self else { return }
                     await self.apply(spans: accumulated, theme: theme)
                     var index = 0
                     while index < pendingLines.count {
@@ -138,15 +139,17 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
                         let offset = self.textView.textStorage?.length ?? 0
                         let chunk = await Task.detached(priority: .userInitiated) { () -> (String, [TokenSpan]) in
                             var formatted = ""
+                            var formattedUTF16 = 0
                             var spans: [TokenSpan] = []
                             for line in slice {
                                 let (text, lineSpans) = JSONReformatter.reindentWithSpans(
                                     line,
-                                    utf16Offset: offset + formatted.utf16.count,
+                                    utf16Offset: offset + formattedUTF16,
                                     expandNewlines: expandNewlines
                                 )
                                 formatted += text
                                 formatted += "\n\n"
+                                formattedUTF16 += text.utf16.count + 2
                                 spans.append(contentsOf: lineSpans)
                             }
                             return (formatted, spans)
@@ -157,10 +160,11 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
                         )
                         await self.apply(spans: chunk.1, theme: theme)
                         accumulated.append(contentsOf: chunk.1)
-                        self.spans = accumulated
                         index = end
                         await Task.yield()
                     }
+                    guard !Task.isCancelled else { return }
+                    self.spans = accumulated
                     self.highlighted = true
                     DebugLog.log("reformatted+colored \(url.lastPathComponent): \(accumulated.count) spans")
                     if self.isDarkAppearance != dark {
@@ -417,8 +421,17 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
         }
         func headingLevel(of range: NSRange) -> Int {
             let text = (storage.string as NSString).substring(with: range)
-            return text.drop(while: { $0 == " " }).prefix(while: { $0 == "#" }).count
+            let atx = text.drop(while: { $0 == " " }).prefix(while: { $0 == "#" }).count
+            if atx > 0 { return atx }
+            // Setext headings have no #: an === underline is H1, --- is H2.
+            let lastLine = text.split(separator: "\n", omittingEmptySubsequences: true).last ?? ""
+            return lastLine.first == "-" ? 2 : 1
         }
+
+        // Trait spans (emphasis/strong) nested inside a scaled heading must
+        // keep the heading's size; headings arrive pre-order before their
+        // children, so tracking applied heading fonts suffices.
+        var appliedHeadings: [(range: NSRange, font: NSFont)] = []
 
         func applyBatch(_ batch: some Sequence<TokenSpan>) {
             let length = storage.length
@@ -432,8 +445,27 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
                 if span.nodeTypeName == "xcode.syntax.markup.heading",
                    let font = headingFont(forLevel: headingLevel(of: span.range)) {
                     storage.addAttribute(.font, value: font, range: span.range)
+                    appliedHeadings.append((span.range, font))
                 } else if let font = attrs.font {
-                    storage.addAttribute(.font, value: font, range: span.range)
+                    let enclosingHeading = appliedHeadings.last(where: {
+                        $0.range.location <= span.range.location
+                            && NSMaxRange($0.range) >= NSMaxRange(span.range)
+                    })
+                    if let heading = enclosingHeading {
+                        // Re-derive the trait on the heading's font so the
+                        // enlarged size survives (e.g. italic inside # Title).
+                        var derived = heading.font
+                        let manager = NSFontManager.shared
+                        if font.fontDescriptor.symbolicTraits.contains(.bold) {
+                            derived = manager.convert(derived, toHaveTrait: .boldFontMask)
+                        }
+                        if font.fontDescriptor.symbolicTraits.contains(.italic) {
+                            derived = manager.convert(derived, toHaveTrait: .italicFontMask)
+                        }
+                        storage.addAttribute(.font, value: derived, range: span.range)
+                    } else {
+                        storage.addAttribute(.font, value: font, range: span.range)
+                    }
                 }
             }
             storage.endEditing()

@@ -100,6 +100,14 @@ struct JSONReformatterTests {
         #expect(ns.substring(with: keyword.range) == "true")
     }
 
+    @Test func bareMinusIsNotANumberSpan() {
+        let (text, spans) = JSONReformatter.reindentWithSpans("{\"k\":-,\"n\":-5}"[...], utf16Offset: 0)
+        let ns = text as NSString
+        let numbers = spans.filter { $0.nodeTypeName == "xcode.syntax.number" }
+        #expect(numbers.count == 1)
+        #expect(ns.substring(with: numbers[0].range) == "-5")
+    }
+
     @Test func reindentThroughputSupportsStreaming() {
         // The synchronous head is ~128KB; budget far above any viewport need.
         let line = "{\"k\":\"" + String(repeating: "v", count: 500) + "\",\"n\":[1,2,3]}"

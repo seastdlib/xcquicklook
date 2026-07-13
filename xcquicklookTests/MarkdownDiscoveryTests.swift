@@ -80,6 +80,59 @@ struct MarkdownTypographyTests {
     }
 
     @MainActor
+    @Test func emphasisInsideHeadingKeepsHeadingSize() async throws {
+        let doc = "# Title *word* end\n\nbody\n"
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("xcql-md-e-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let url = dir.appendingPathComponent("e.md")
+        try doc.data(using: .utf8)!.write(to: url)
+
+        let controller = PreviewViewController()
+        _ = controller.view
+        controller.view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)
+        try await controller.preparePreviewOfFile(at: url)
+
+        func findTextView(in view: NSView) -> NSTextView? {
+            if let tv = view as? NSTextView { return tv }
+            for sub in view.subviews { if let tv = findTextView(in: sub) { return tv } }
+            return nil
+        }
+        let storage = try #require(findTextView(in: controller.view)?.textStorage)
+        let ns = doc as NSString
+        func font(at fragment: String) -> NSFont? {
+            let range = ns.range(of: fragment)
+            guard range.location != NSNotFound, storage.length > range.location else { return nil }
+            return storage.attributes(at: range.location, effectiveRange: nil)[.font] as? NSFont
+        }
+        let deadline = Date().addingTimeInterval(8)
+        while Date() < deadline {
+            if let title = font(at: "Title"), let body = font(at: "body"), title.pointSize > body.pointSize { break }
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        let title = try #require(font(at: "Title"))
+        let word = try #require(font(at: "word"))
+        let body = try #require(font(at: "body"))
+        // The emphasized word keeps the heading's enlarged size and gains italic.
+        #expect(word.pointSize == title.pointSize)
+        #expect(word.pointSize > body.pointSize)
+        #expect(word.fontDescriptor.symbolicTraits.contains(.italic))
+    }
+
+    @Test func headingScalesNeverShrinkBelowBody() throws {
+        let plist: [String: Any] = [
+            "DVTSourceTextSyntaxColors": ["xcode.syntax.keyword": "0.1 0.2 0.3 1"],
+            "DVTMarkupTextNormalFont": "Helvetica - 12.0",
+            "DVTMarkupTextSecondaryHeadingFont": "Helvetica-Bold - 10.0",
+            "DVTMarkupTextOtherHeadingFont": "Helvetica-Bold - 8.0",
+        ]
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("small-\(UUID().uuidString).xccolortheme")
+        try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0).write(to: url)
+        let theme = try Theme.load(from: url)
+        #expect(theme.headingScales.allSatisfy { $0 >= 1.0 })
+    }
+
+    @MainActor
     @Test func renderedTraitsAppearInLivePreview() async throws {
         let doc = "# Title\n\nnormal *ital* and **bold** words\n"
         let dir = FileManager.default.temporaryDirectory
