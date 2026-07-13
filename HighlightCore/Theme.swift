@@ -94,16 +94,20 @@ nonisolated struct Theme: Sendable, Equatable {
         }
 
         // Heading sizes, expressed as ratios of the theme's own markup body
-        // size so nothing is hardcoded and any theme's proportions carry over.
+        // size so nothing is hardcoded and any theme's proportions carry
+        // over. The ladder is shifted down one step — the Primary heading
+        // size reads oversized in a preview panel — so H1 uses the Secondary
+        // ratio, H2 uses Other, and H3+ continues the same geometric step
+        // below Other (floored at body size).
         var theme = Theme(styles: styles)
-        if let normal = fontSize(plist["DVTMarkupTextNormalFont"] as? String), normal > 0 {
-            for key in ["DVTMarkupTextPrimaryHeadingFont",
-                        "DVTMarkupTextSecondaryHeadingFont",
-                        "DVTMarkupTextOtherHeadingFont"] {
-                if let size = fontSize(plist[key] as? String), size > 0 {
-                    theme.headingScales.append(size / normal)
-                }
-            }
+        if let normal = fontSize(plist["DVTMarkupTextNormalFont"] as? String), normal > 0,
+           let secondary = fontSize(plist["DVTMarkupTextSecondaryHeadingFont"] as? String),
+           let other = fontSize(plist["DVTMarkupTextOtherHeadingFont"] as? String),
+           secondary > 0, other > 0 {
+            let h1 = secondary / normal
+            let h2 = other / normal
+            let h3 = max(h2 * (h2 / h1), 1.0)
+            theme.headingScales = [h1, h2, h3]
         }
         return theme
     }
