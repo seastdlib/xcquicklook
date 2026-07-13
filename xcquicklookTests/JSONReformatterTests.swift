@@ -62,7 +62,10 @@ struct JSONReformatterTests {
 
     @Test func escapedNewlinesBecomeAlignedLineBreaks() {
         let input = "{\"content\":\"first line\\nsecond line\\nthird\"}"
-        let (text, spans) = JSONReformatter.reindentWithSpans(input[...], utf16Offset: 0)
+        // Expansion is opt-in (jsonl only); default keeps escapes intact.
+        let defaultOut = JSONReformatter.reindent(input[...])
+        #expect(defaultOut.contains("first line\\nsecond line"))
+        let (text, spans) = JSONReformatter.reindentWithSpans(input[...], utf16Offset: 0, expandNewlines: true)
         // Real line breaks, continuation aligned to the string's start column.
         let lines = text.components(separatedBy: "\n")
         let firstIndex = try! #require(lines.firstIndex(where: { $0.contains("first line") }))
@@ -80,7 +83,7 @@ struct JSONReformatterTests {
         // Escaped backslash-n (\\n in source, i.e. literal backslash + n)
         // must NOT break: it is content, not a newline escape.
         let literal = "{\"path\":\"a\\\\nb\"}"
-        let (text2, _) = JSONReformatter.reindentWithSpans(literal[...], utf16Offset: 0)
+        let (text2, _) = JSONReformatter.reindentWithSpans(literal[...], utf16Offset: 0, expandNewlines: true)
         #expect(text2.contains("a\\\\nb"))
     }
 

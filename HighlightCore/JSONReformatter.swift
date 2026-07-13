@@ -16,7 +16,11 @@ nonisolated enum JSONReformatter {
     /// Reindents one JSON value and reports token spans. `utf16Offset` is
     /// the absolute UTF-16 position at which this text will be placed, so
     /// span ranges land directly in the final storage's coordinates.
-    static func reindentWithSpans(_ input: Substring, utf16Offset: Int) -> (text: String, spans: [TokenSpan]) {
+    static func reindentWithSpans(
+        _ input: Substring,
+        utf16Offset: Int,
+        expandNewlines: Bool = false
+    ) -> (text: String, spans: [TokenSpan]) {
         let bytes = Array(input.utf8)
         var out = [UInt8]()
         out.reserveCapacity(bytes.count + bytes.count / 4)
@@ -56,7 +60,7 @@ nonisolated enum JSONReformatter {
                 while i < bytes.count {
                     let b = bytes[i]
                     if b == 0x5C, i + 1 < bytes.count {  // escape pair
-                        if bytes[i + 1] == 0x6E {  // \n: real line break, aligned
+                        if expandNewlines, bytes[i + 1] == 0x6E {  // \n: real break, aligned
                             append(0x0A)
                             for _ in 0..<continuationIndent { append(0x20) }
                         } else {
@@ -141,8 +145,8 @@ nonisolated enum JSONReformatter {
     }
 
     /// Text-only variant, for callers and tests that don't need spans.
-    static func reindent(_ input: Substring) -> String {
-        reindentWithSpans(input, utf16Offset: 0).text
+    static func reindent(_ input: Substring, expandNewlines: Bool = false) -> String {
+        reindentWithSpans(input, utf16Offset: 0, expandNewlines: expandNewlines).text
     }
 
     private static func isNumberByte(_ byte: UInt8) -> Bool {
@@ -180,7 +184,7 @@ nonisolated enum JSONReformatter {
     /// fill any viewport instantly) and the raw remaining lines for
     /// asynchronous continuation. Returns nil when the text doesn't benefit
     /// (already pretty, not JSON-shaped, or a huge single document).
-    static func job(for text: String) -> (initial: String, initialSpans: [TokenSpan], remaining: [Substring])? {
+    static func job(for text: String, expandNewlines: Bool = false) -> (initial: String, initialSpans: [TokenSpan], remaining: [Substring])? {
         let lines = text.split(separator: "\n", omittingEmptySubsequences: true)
         guard let first = lines.first,
               first.hasPrefix("{") || first.hasPrefix("["),
@@ -191,7 +195,7 @@ nonisolated enum JSONReformatter {
         // whole when that's still instant-adjacent, otherwise leave it raw.
         if lines.count == 1 {
             guard text.utf8.count <= 4 * 1024 * 1024 else { return nil }
-            let (formatted, spans) = reindentWithSpans(lines[0], utf16Offset: 0)
+            let (formatted, spans) = reindentWithSpans(lines[0], utf16Offset: 0, expandNewlines: expandNewlines)
             return (formatted, spans, [])
         }
         var initial = ""
@@ -199,7 +203,9 @@ nonisolated enum JSONReformatter {
         var consumed = 0
         var index = 0
         while index < lines.count, consumed < 128 * 1024 {
-            let (formatted, lineSpans) = reindentWithSpans(lines[index], utf16Offset: initial.utf16.count)
+            let (formatted, lineSpans) = reindentWithSpans(
+                lines[index], utf16Offset: initial.utf16.count, expandNewlines: expandNewlines
+            )
             initial += formatted
             initial += "\n\n"
             spans.append(contentsOf: lineSpans)

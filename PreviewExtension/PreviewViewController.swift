@@ -93,8 +93,11 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
         var displayText = text
         var pendingLines: [Substring] = []
         var reformatterSpans: [TokenSpan]?
+        // Escaped-\n expansion is a transcript-reading affordance: only
+        // .jsonl gets it; .json/.ndjson reformat with escapes intact.
+        let expandNewlines = Self.isJSONLines(contentType: contentType, url: url)
         if Self.isJSONFamily(contentType: contentType, url: url),
-           let job = JSONReformatter.job(for: text) {
+           let job = JSONReformatter.job(for: text, expandNewlines: expandNewlines) {
             displayText = job.initial
             pendingLines = job.remaining
             reformatterSpans = job.initialSpans
@@ -138,7 +141,9 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
                             var spans: [TokenSpan] = []
                             for line in slice {
                                 let (text, lineSpans) = JSONReformatter.reindentWithSpans(
-                                    line, utf16Offset: offset + formatted.utf16.count
+                                    line,
+                                    utf16Offset: offset + formatted.utf16.count,
+                                    expandNewlines: expandNewlines
                                 )
                                 formatted += text
                                 formatted += "\n\n"
@@ -190,6 +195,12 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
         }
         let ext = url.pathExtension.lowercased()
         return ext == "json" || ext == "jsonl" || ext == "ndjson"
+    }
+
+    /// Specifically .jsonl (extension, or its deterministic dynamic UTI).
+    private static func isJSONLines(contentType: UTType?, url: URL) -> Bool {
+        url.pathExtension.lowercased() == "jsonl"
+            || contentType?.identifier == "dyn.ah62d4rv4ge80y65tr30a"
     }
 
     deinit {
