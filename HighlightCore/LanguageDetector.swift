@@ -122,16 +122,23 @@ nonisolated enum LanguageDetector {
 
         // Brace documents: JSON vs old-style (ASCII) property list. They look
         // alike at the first byte; plists assign with `key = value;`, JSON
-        // pairs with `"key": value,`.
-        if first == "{" || first == "[" || first == "(" {
+        // pairs with `"key": value,`. An INI [section] header also starts
+        // with "[" — leave those to line voting.
+        if first == "{" || first == "(" || (first == "[" && !firstLineIsSectionHeader(trimmed)) {
             let jsonPairs = occurrences(of: "\":", in: trimmed) + occurrences(of: "\" :", in: trimmed)
             let plistPairs = min(occurrences(of: " = ", in: trimmed), occurrences(of: ";", in: trimmed))
             if plistPairs > jsonPairs { return "Xcode.SourceCodeLanguage.TextPlist" }
             return "Xcode.SourceCodeLanguage.JSON"
         }
 
-        // Line voting for shell / INI / YAML shapes.
-        var shell = 0
+        // Line voting for shell / INI / YAML shapes. Signals are ranked:
+        // structural shapes (sections, list items, pairs) are checked before
+        // weak shell flavor, and assignments carrying quoted dollar-variables
+        // count as "shell-flavored assignments" that only tip the scale when
+        // some unambiguous shell line exists — a gitconfig alias like
+        // `lg = log --pretty="$FMT"` must stay INI.
+        var shellStrong = 0
+        var shellAssignments = 0
         var iniSections = 0
         var assignments = 0
         var yamlPairs = 0
@@ -164,19 +171,29 @@ nonisolated enum LanguageDetector {
                 continue
             }
             if line.hasPrefix("#") { continue }
-            // Starter keywords, expansions, POSIX function definitions, and
-            // quoted dollar-variables all vote shell.
+            // Unambiguous shell: starter keywords, expansions, heredocs, and
+            // POSIX function definitions (`name() {` — a BARE identifier
+            // before the parens, so Swift/C `func f() {` doesn't match).
             if shellStarters.contains(where: line.hasPrefix) || line.contains("$(") || line.contains("${")
-                || line.contains("() {") || line.contains("\"$") || line.contains("'$") {
-                shell += 1
+                || isShellFunctionDefinition(line)
+                || (line.contains("<<") && !line.contains(";")) {
+                shellStrong += 1
                 continue
             }
             if line.hasPrefix("["), line.hasSuffix("]"), !line.contains("=") {
                 iniSections += 1
                 continue
             }
-            if line.contains("="), !line.hasPrefix("- ") {
-                assignments += 1
+            if line.hasPrefix("- ") {
+                yamlPairs += 1
+                continue
+            }
+            if line.contains("=") {
+                if line.contains("\"$") || line.contains("'$") {
+                    shellAssignments += 1
+                } else {
+                    assignments += 1
+                }
                 continue
             }
             // "key: value" with a short key and no assignment flavor.
@@ -186,11 +203,29 @@ nonisolated enum LanguageDetector {
                 yamlPairs += 1
             }
         }
-        if cDirectives >= 2, cDirectives > shell { return "Xcode.SourceCodeLanguage.C" }
-        if shell >= 2, shell >= assignments { return "Xcode.SourceCodeLanguage.BourneShellScript" }
-        if iniSections >= 1, assignments >= 1 { return "Xcode.SourceCodeLanguage.TOML_INI" }
-        if yamlPairs >= 3, assignments == 0, shell == 0 { return "Xcode.SourceCodeLanguage.YAML" }
+        if shellStrong >= 2 || (shellStrong >= 1 && shellAssignments >= 1) {
+            return "Xcode.SourceCodeLanguage.BourneShellScript"
+        }
+        if cDirectives >= 2, cDirectives > shellStrong { return "Xcode.SourceCodeLanguage.C" }
+        if iniSections >= 1, assignments + shellAssignments >= 1 { return "Xcode.SourceCodeLanguage.TOML_INI" }
+        if yamlPairs >= 3, assignments == 0, shellStrong == 0 { return "Xcode.SourceCodeLanguage.YAML" }
         return nil
+    }
+
+    /// `path_prepend() {` is a POSIX function definition; `func f() {` is not:
+    /// the text before "() {" must be one bare identifier.
+    private static func isShellFunctionDefinition(_ line: String) -> Bool {
+        guard line.hasSuffix("() {"), line.count > 4 else { return false }
+        let name = line.dropLast(4)
+        return name.allSatisfy { $0.isLetter || $0.isNumber || $0 == "_" || $0 == "-" || $0 == ":" || $0 == "." }
+    }
+
+    /// `[user]` alone on the first line is an INI section, not a JSON array:
+    /// no commas, no quotes, closing bracket at end of line.
+    private static func firstLineIsSectionHeader(_ text: Substring) -> Bool {
+        let firstLine = text.prefix(while: { $0 != "\n" }).trimmingCharacters(in: .whitespacesAndNewlines)
+        return firstLine.count > 2 && firstLine.hasPrefix("[") && firstLine.hasSuffix("]")
+            && !firstLine.contains(",") && !firstLine.contains("\"") && !firstLine.contains(":")
     }
 
     private static func occurrences(of needle: String, in text: Substring) -> Int {

@@ -65,3 +65,72 @@ struct RedTeamRegressionTests {
         }
     }
 }
+
+/// Regressions for the eight failures found by the adversary agent (round 3).
+struct RedTeam3RegressionTests {
+    @MainActor
+    @Test func latin1SparseAccentsSurviveLossyDetection() {
+        // Mostly-ASCII Latin-1: lossy detection would pick UTF-8 and replace
+        // every accent with U+FFFD.
+        let text = "nom = café\n" + String(repeating: "x = 1\n", count: 100)
+        let decoded = PreviewViewController.decodeText(text.data(using: .isoLatin1)!)
+        #expect(decoded?.contains("café") == true)
+        #expect(decoded?.contains("\u{FFFD}") != true)
+    }
+
+    @MainActor
+    @Test func asciiHeadWithBinaryNULTailDeclines() {
+        var data = Data(String(repeating: "log line: everything is fine\n", count: 300).utf8)
+        data.append(Data(count: 4096))
+        #expect(PreviewViewController.decodeText(data) == nil)
+    }
+
+    @Test func gitconfigWithShellFlavoredAliasValuesStaysINI() {
+        let text = "# aliases\n[alias]\n\tlg = log --pretty=\"$FMT\"\n\twho = shortlog --since=\"$SINCE\"\n\tst = status\n[core]\n\tpager = less -FRX"
+        #expect(LanguageDetector.contentLanguageID(forTextPrefix: text) == "Xcode.SourceCodeLanguage.TOML_INI")
+    }
+
+    @Test func actionsStyleYAMLWithQuotedVarsDoesNotBecomeShell() {
+        let text = "name: CI\non: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo \"$GITHUB_SHA\"\n      - run: git describe \"$GITHUB_REF\""
+        #expect(LanguageDetector.contentLanguageID(forTextPrefix: text) != "Xcode.SourceCodeLanguage.BourneShellScript")
+    }
+
+    @Test func gitconfigOpeningWithSectionHeaderIsNotJSON() {
+        let text = "[user]\n\tname = Example\n[core]\n\tpager = less -FRX"
+        #expect(LanguageDetector.contentLanguageID(forTextPrefix: text) == "Xcode.SourceCodeLanguage.TOML_INI")
+    }
+
+    @Test func swiftLikeSourceDoesNotClassifyAsShell() {
+        let text = "import Foundation\n\nfunc main() {\n    print(\"hi\")\n}\n\nstruct Config {\n    func load() {\n    }\n}"
+        #expect(LanguageDetector.contentLanguageID(forTextPrefix: text) != "Xcode.SourceCodeLanguage.BourneShellScript")
+    }
+
+    @Test func configureStyleHeredocStaysShellDespiteDefines() {
+        let text = "cat > confdefs.h <<EOF\n#define PACKAGE \"demo\"\n#define VERSION \"1.0\"\nEOF\necho done"
+        #expect(LanguageDetector.contentLanguageID(forTextPrefix: text) == "Xcode.SourceCodeLanguage.BourneShellScript")
+    }
+
+    @Test func themeRejectsNonFiniteAndJunkColors() throws {
+        let plist: [String: Any] = [
+            "DVTSourceTextSyntaxColors": [
+                "xcode.syntax.keyword": "nan nan nan nan",
+                "xcode.syntax.string": "inf -inf 1e999 1",
+                "xcode.syntax.comment": "0.1 0.2 0.3 1 extra",
+                "xcode.syntax.number": "0.1 0.2 0.3 1",
+            ],
+        ]
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("junk-\(UUID().uuidString).xccolortheme")
+        try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0).write(to: url)
+        let theme = try Theme.load(from: url)
+        #expect(theme.style(forNodeTypeName: "xcode.syntax.keyword")?.color == nil)
+        #expect(theme.style(forNodeTypeName: "xcode.syntax.string")?.color == nil)
+        #expect(theme.style(forNodeTypeName: "xcode.syntax.comment")?.color == nil)
+        #expect(theme.style(forNodeTypeName: "xcode.syntax.number")?.color != nil)
+    }
+
+    @Test func proseFileNamedSwiftIsNotTokenizedAsSwift() async throws {
+        let prose = "let us go then, you and I\nas the evening spreads\nif only for a while\n"
+        let result = try await spans(prose, uti: "public.data", filename: "swift")
+        #expect(!hasSpan(result, type: "xcode.syntax.keyword", covering: "let", in: prose))
+    }
+}

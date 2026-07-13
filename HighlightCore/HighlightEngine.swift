@@ -141,10 +141,16 @@ actor HighlightEngine {
             }
             // Extensionless files (.zprofile, a symlink target named "zshrc")
             // carry their whole identity in the name; reuse the extension
-            // machinery for it.
+            // machinery for it. The framework's full extension table only
+            // applies to dotfiles — a prose file that happens to be named
+            // "swift" must not tokenize as Swift — while the curated alias
+            // table applies to bare names too.
             if hint.fileExtension == nil || hint.fileExtension?.isEmpty == true,
                let pseudo = LanguageDetector.pseudoExtension(forFilename: filename) {
-                if let language = client.language(forExtension: pseudo) { return language }
+                if filename.hasPrefix("."),
+                   let language = client.language(forExtension: pseudo) {
+                    return language
+                }
                 if let id = LanguageDetector.aliasLanguageIDs[pseudo],
                    let language = client.language(forIdentifier: id) {
                     return language

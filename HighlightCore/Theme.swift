@@ -65,11 +65,14 @@ nonisolated struct Theme: Sendable, Equatable {
         return Theme(styles: styles)
     }
 
-    /// "0.607592 0.137526 0.576284 1" → TokenColor
+    /// "0.607592 0.137526 0.576284 1" → TokenColor. Exactly four finite
+    /// components: junk tokens, NaN, and infinities must not reach NSColor.
     private static func parseColor(_ value: String) -> TokenColor? {
-        let parts = value.split(separator: " ").compactMap { Double($0) }
+        let parts = value.split(separator: " ")
         guard parts.count == 4 else { return nil }
-        return TokenColor(red: parts[0], green: parts[1], blue: parts[2], alpha: parts[3])
+        let numbers = parts.compactMap { Double($0) }
+        guard numbers.count == 4, numbers.allSatisfy(\.isFinite) else { return nil }
+        return TokenColor(red: numbers[0], green: numbers[1], blue: numbers[2], alpha: numbers[3])
     }
 
     /// "SFMono-Semibold - 12.0" → "SFMono-Semibold"

@@ -177,19 +177,21 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
             return utf16
         }
 
-        // NUL analysis on a prefix: text encodings other than UTF-16/32 never
-        // contain NULs, but BOM-less UTF-16 of ASCII-ish text is ~half NULs,
-        // all on one byte parity. Anything else NUL-laden is binary. The
+        // NUL analysis over the WHOLE file (strict UTF-8 would happily accept
+        // embedded NULs, so an ASCII head with a binary NUL tail must be
+        // caught here): text encodings other than UTF-16/32 never contain
+        // NULs, but BOM-less UTF-16 of ASCII-ish text is ~half NULs, all on
+        // one byte parity. Anything else NUL-laden is binary. The
         // looksLikeText gate catches the false positive this heuristic alone
         // would admit: binary tables of small 16-bit integers share the NUL
         // parity signature but decode to control-character soup.
-        let sample = data.prefix(8192)
-        var evenNULs = 0
-        var oddNULs = 0
-        for (offset, byte) in sample.enumerated() where byte == 0 {
-            if offset.isMultiple(of: 2) { evenNULs += 1 } else { oddNULs += 1 }
-        }
-        if evenNULs + oddNULs > 0 {
+        if data.contains(0) {
+            let sample = data.prefix(8192)
+            var evenNULs = 0
+            var oddNULs = 0
+            for (offset, byte) in sample.enumerated() where byte == 0 {
+                if offset.isMultiple(of: 2) { evenNULs += 1 } else { oddNULs += 1 }
+            }
             if data.count % 2 == 0, (evenNULs + oddNULs) * 3 >= sample.count {
                 if oddNULs > evenNULs * 8,
                    let utf16 = String(data: data, encoding: .utf16LittleEndian),
@@ -207,10 +209,16 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
 
         // Strict UTF-8 covers ASCII and validates byte structure.
         if let utf8 = String(data: data, encoding: .utf8) { return utf8 }
+        // Lossy conversion must be forbidden: the detector would otherwise
+        // pick UTF-8 for mostly-ASCII Latin-1 and replace every accent with
+        // U+FFFD instead of letting the Latin-1 rung decode them.
         var converted: NSString?
         let encoding = NSString.stringEncoding(
             for: data,
-            encodingOptions: [.suggestedEncodingsKey: [NSUTF8StringEncoding]],
+            encodingOptions: [
+                .suggestedEncodingsKey: [NSUTF8StringEncoding],
+                .allowLossyKey: false,
+            ],
             convertedString: &converted,
             usedLossyConversion: nil
         )
