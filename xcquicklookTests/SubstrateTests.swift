@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import Testing
+import UniformTypeIdentifiers
 
 // MARK: - Fixture corpus
 
@@ -306,6 +307,10 @@ private extension Data {
 
 struct BenchmarkTests {
     @Test func tokenizePerformanceBudgets() async throws {
+        // Dedicated engine: other suites run in parallel and funnel through
+        // the shared module-level engine actor; measuring against that queue
+        // would time contention, not tokenization.
+        let benchEngine = HighlightEngine(frameworkURL: repoFrameworkURL)
         // Generous ceilings: these catch order-of-magnitude regressions, not noise.
         var swiftSource = ""
         for i in 0..<1500 {
@@ -316,8 +321,13 @@ struct BenchmarkTests {
             ("minified-js", try fixtureText("minified.js"), "js", 3.0),
         ]
         for budget in budgets {
+            var hint = LanguageHint()
+            hint.fileExtension = budget.ext
+            if let type = UTType(filenameExtension: budget.ext) {
+                hint.contentTypeIdentifiers = [type.identifier]
+            }
             let start = ContinuousClock.now
-            let result = try await spans(budget.text, ext: budget.ext)
+            let result = try await benchEngine.tokenize(text: budget.text, hint: hint, theme: stubTheme)
             let elapsed = ContinuousClock.now - start
             #expect(!result.isEmpty, "\(budget.label): no spans")
             #expect(elapsed < .seconds(budget.seconds), "\(budget.label) took \(elapsed)")

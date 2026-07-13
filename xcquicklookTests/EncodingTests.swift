@@ -37,12 +37,22 @@ struct EncodingLadderTests {
     }
 
     @Test func utf16LEWhoseFirstCharacterIsNULIsNotMistakenForUTF32() {
-        // "\0a" in UTF-16LE starts FF FE 00 00 ... only if BOM'd and first
-        // char is NUL; length not divisible by 4 must fall back to UTF-16.
+        // A BOM'd UTF-16LE file whose first character is NUL starts with the
+        // UTF-32LE BOM bytes; the %4 length check must route it to UTF-16.
+        // Payload is long enough that one NUL stays under the control-char gate.
+        let payload = "\u{0000}" + String(repeating: "abcdefgh ", count: 12)
         var data = Data([0xFF, 0xFE])
-        data.append("\u{0000}abc".data(using: .utf16LittleEndian)!)
+        data.append(payload.data(using: .utf16LittleEndian)!)
         let decoded = PreviewViewController.decodeText(data)
-        #expect(decoded?.contains("abc") == true)
+        #expect(decoded?.contains("abcdefgh") == true)
+    }
+
+    @Test func uint16BinaryTableIsNotMistakenForUTF16() {
+        // Little-endian arrays of small 16-bit integers share BOM-less
+        // UTF-16's NUL-parity signature but decode to control-char soup.
+        var table = Data()
+        for i in 0..<512 { table.append(contentsOf: [UInt8(i % 32), 0x00]) }
+        #expect(PreviewViewController.decodeText(table) == nil)
     }
 
     @Test func binaryStillDeclines() {
@@ -92,6 +102,13 @@ struct AdversarialDetectionTests {
         let c = "#include <stdio.h>\nint main(void) { return 42; }\n"
         let result = try await spans(c, uti: "public.data", filename: "conftest")
         #expect(hasSpan(result, type: "xcode.syntax.preprocessor", covering: "#include", in: c))
+    }
+
+    @Test func proseIncludeCommentDoesNotHijackShellClassification() async throws {
+        // A zshrc whose comment happens to start with "#include" must stay shell.
+        let rc = "#include stuff from the old config\nexport A=1\nalias b='c'\nsetopt X\n"
+        let result = try await spans(rc, uti: "public.data", filename: ".zshrc")
+        #expect(hasSpan(result, type: "xcode.syntax.keyword", covering: "export", in: rc))
     }
 
     @Test func plainTxtWithShellContentStaysUnhighlighted() async throws {

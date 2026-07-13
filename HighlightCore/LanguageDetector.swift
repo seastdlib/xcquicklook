@@ -102,7 +102,7 @@ nonisolated enum LanguageDetector {
         }
 
         // A YAML document-start marker is unambiguous.
-        if trimmed.hasPrefix("---\n") || trimmed.hasPrefix("--- ") {
+        if trimmed.hasPrefix("---\n") || trimmed.hasPrefix("---\r\n") || trimmed.hasPrefix("--- ") {
             return "Xcode.SourceCodeLanguage.YAML"
         }
 
@@ -121,6 +121,7 @@ nonisolated enum LanguageDetector {
         var iniSections = 0
         var assignments = 0
         var yamlPairs = 0
+        var cDirectives = 0
         let shellStarters = [
             "export ", "alias ", "unalias ", "setopt ", "unsetopt ", "set -",
             "source ", ". /", "eval ", "shopt ", "autoload ", "bindkey ",
@@ -130,11 +131,18 @@ nonisolated enum LanguageDetector {
         for rawLine in trimmed.split(separator: "\n", maxSplits: 80, omittingEmptySubsequences: true) {
             let line = rawLine.trimmingCharacters(in: .whitespaces)
             if line.isEmpty { continue }
-            // Preprocessor directives are C-family, not comments; "#include"
-            // etc. have no space after the hash, unlike prose comments.
-            if line.hasPrefix("#include") || line.hasPrefix("#import")
-                || line.hasPrefix("#pragma") || line.hasPrefix("#ifndef") {
+            // Include directives with their bracket/quote are unambiguously
+            // C-family; a shell comment "#include stuff" never has one.
+            if line.hasPrefix("#include <") || line.hasPrefix("#include \"")
+                || line.hasPrefix("#import <") || line.hasPrefix("#import \"") {
                 return "Xcode.SourceCodeLanguage.C"
+            }
+            // Weaker directives vote rather than decide: prose comments can
+            // start with the same words.
+            if line.hasPrefix("#define ") || line.hasPrefix("#ifndef ")
+                || line.hasPrefix("#ifdef ") || line.hasPrefix("#pragma ") {
+                cDirectives += 1
+                continue
             }
             if line.hasPrefix("#") { continue }
             if shellStarters.contains(where: line.hasPrefix) || line.contains("$(") || line.contains("${") {
@@ -156,6 +164,7 @@ nonisolated enum LanguageDetector {
                 yamlPairs += 1
             }
         }
+        if cDirectives >= 2, cDirectives > shell { return "Xcode.SourceCodeLanguage.C" }
         if shell >= 2, shell >= assignments { return "Xcode.SourceCodeLanguage.BourneShellScript" }
         if iniSections >= 1, assignments >= 1 { return "Xcode.SourceCodeLanguage.TOML_INI" }
         if yamlPairs >= 3, assignments == 0, shell == 0 { return "Xcode.SourceCodeLanguage.YAML" }

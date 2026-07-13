@@ -136,7 +136,10 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
 
     // Internal (not private) so the test bundle can exercise encoding handling.
     static func readText(at url: URL) -> String? {
-        guard let data = try? Data(contentsOf: url, options: .mappedIfSafe) else { return nil }
+        // Deliberately NOT memory-mapped: a mapped file that gets truncated
+        // mid-preview (log rotation, atomic saves) turns every later access
+        // into SIGBUS. Text previews are small enough to read outright.
+        guard let data = try? Data(contentsOf: url) else { return nil }
         return decodeText(data)
     }
 
@@ -147,26 +150,39 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
     /// misreads even-length ASCII as UTF-16, producing CJK mojibake.
     static func decodeText(_ data: Data) -> String? {
         // UTF-32 BOMs first: the UTF-32LE BOM starts with the UTF-16LE BOM.
-        if data.starts(with: [0x00, 0x00, 0xFE, 0xFF]) {
-            return String(data: data.dropFirst(4), encoding: .utf32BigEndian)
-        }
-        if data.starts(with: [0xFF, 0xFE, 0x00, 0x00]), data.count % 4 == 0,
-           let utf32 = String(data: data.dropFirst(4), encoding: .utf32LittleEndian) {
+        // BOM branches fall through on failed or garbage decodes rather than
+        // declining outright.
+        if data.starts(with: [0x00, 0x00, 0xFE, 0xFF]), data.count % 4 == 0,
+           let utf32 = String(data: data.dropFirst(4), encoding: .utf32BigEndian),
+           looksLikeText(utf32) {
             return utf32
         }
-        if data.starts(with: [0xEF, 0xBB, 0xBF]) {
-            return String(data: data.dropFirst(3), encoding: .utf8)
+        if data.starts(with: [0xFF, 0xFE, 0x00, 0x00]), data.count % 4 == 0,
+           let utf32 = String(data: data.dropFirst(4), encoding: .utf32LittleEndian),
+           looksLikeText(utf32) {
+            return utf32
         }
-        if data.starts(with: [0xFF, 0xFE]) {
-            return String(data: data.dropFirst(2), encoding: .utf16LittleEndian)
+        if data.starts(with: [0xEF, 0xBB, 0xBF]),
+           let utf8 = String(data: data.dropFirst(3), encoding: .utf8) {
+            return utf8
         }
-        if data.starts(with: [0xFE, 0xFF]) {
-            return String(data: data.dropFirst(2), encoding: .utf16BigEndian)
+        if data.starts(with: [0xFF, 0xFE]),
+           let utf16 = String(data: data.dropFirst(2), encoding: .utf16LittleEndian),
+           looksLikeText(utf16) {
+            return utf16
+        }
+        if data.starts(with: [0xFE, 0xFF]),
+           let utf16 = String(data: data.dropFirst(2), encoding: .utf16BigEndian),
+           looksLikeText(utf16) {
+            return utf16
         }
 
         // NUL analysis on a prefix: text encodings other than UTF-16/32 never
         // contain NULs, but BOM-less UTF-16 of ASCII-ish text is ~half NULs,
-        // all on one byte parity. Anything else NUL-laden is binary.
+        // all on one byte parity. Anything else NUL-laden is binary. The
+        // looksLikeText gate catches the false positive this heuristic alone
+        // would admit: binary tables of small 16-bit integers share the NUL
+        // parity signature but decode to control-character soup.
         let sample = data.prefix(8192)
         var evenNULs = 0
         var oddNULs = 0
@@ -175,11 +191,15 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
         }
         if evenNULs + oddNULs > 0 {
             if data.count % 2 == 0, (evenNULs + oddNULs) * 3 >= sample.count {
-                if oddNULs > evenNULs * 8 {
-                    return String(data: data, encoding: .utf16LittleEndian)
+                if oddNULs > evenNULs * 8,
+                   let utf16 = String(data: data, encoding: .utf16LittleEndian),
+                   looksLikeText(utf16) {
+                    return utf16
                 }
-                if evenNULs > oddNULs * 8 {
-                    return String(data: data, encoding: .utf16BigEndian)
+                if evenNULs > oddNULs * 8,
+                   let utf16 = String(data: data, encoding: .utf16BigEndian),
+                   looksLikeText(utf16) {
+                    return utf16
                 }
             }
             return nil
@@ -196,6 +216,22 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
         )
         if encoding != 0, let converted { return converted as String }
         return String(data: data, encoding: .isoLatin1)
+    }
+
+    /// Heuristic gate for UTF-16/32 decodes: real text is not dominated by
+    /// control characters (tab/newline/CR excepted).
+    private static func looksLikeText(_ string: String) -> Bool {
+        var total = 0
+        var control = 0
+        for scalar in string.unicodeScalars.prefix(4096) {
+            total += 1
+            let v = scalar.value
+            if (v < 0x20 && v != 0x09 && v != 0x0A && v != 0x0D) || (0x7F...0x9F).contains(v) {
+                control += 1
+            }
+        }
+        guard total > 0 else { return true }
+        return control * 20 < total  // <5% control characters
     }
 
     // MARK: Attribute application
