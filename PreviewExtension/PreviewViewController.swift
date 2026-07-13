@@ -137,18 +137,56 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
     // Internal (not private) so the test bundle can exercise encoding handling.
     static func readText(at url: URL) -> String? {
         guard let data = try? Data(contentsOf: url, options: .mappedIfSafe) else { return nil }
-        // NUL bytes near the start mean binary content; let the system handle
-        // it. UTF-16/32 text is full of NULs, so honor a BOM first.
-        let hasTextBOM = data.starts(with: [0xEF, 0xBB, 0xBF])
-            || data.starts(with: [0xFF, 0xFE])
-            || data.starts(with: [0xFE, 0xFF])
-            || data.starts(with: [0x00, 0x00, 0xFE, 0xFF])
-        if !hasTextBOM, data.prefix(8192).contains(0) { return nil }
-        // Strict UTF-8 first: it covers ASCII and validates byte structure.
-        // Never *suggest* UTF-16 to the detector — it happily misreads
-        // even-length ASCII as UTF-16, turning it into CJK mojibake; BOM'd
-        // UTF-16/32 is still detected below without the suggestion.
-        if !hasTextBOM, let utf8 = String(data: data, encoding: .utf8) { return utf8 }
+        return decodeText(data)
+    }
+
+    /// Decoding ladder: explicit BOM dispatch (with the BOM stripped so it
+    /// never renders as a glyph), then a NUL-parity signature for BOM-less
+    /// UTF-16, then strict UTF-8, then platform detection, then Latin-1.
+    /// UTF-16 is never *suggested* to the platform detector — it happily
+    /// misreads even-length ASCII as UTF-16, producing CJK mojibake.
+    static func decodeText(_ data: Data) -> String? {
+        // UTF-32 BOMs first: the UTF-32LE BOM starts with the UTF-16LE BOM.
+        if data.starts(with: [0x00, 0x00, 0xFE, 0xFF]) {
+            return String(data: data.dropFirst(4), encoding: .utf32BigEndian)
+        }
+        if data.starts(with: [0xFF, 0xFE, 0x00, 0x00]), data.count % 4 == 0,
+           let utf32 = String(data: data.dropFirst(4), encoding: .utf32LittleEndian) {
+            return utf32
+        }
+        if data.starts(with: [0xEF, 0xBB, 0xBF]) {
+            return String(data: data.dropFirst(3), encoding: .utf8)
+        }
+        if data.starts(with: [0xFF, 0xFE]) {
+            return String(data: data.dropFirst(2), encoding: .utf16LittleEndian)
+        }
+        if data.starts(with: [0xFE, 0xFF]) {
+            return String(data: data.dropFirst(2), encoding: .utf16BigEndian)
+        }
+
+        // NUL analysis on a prefix: text encodings other than UTF-16/32 never
+        // contain NULs, but BOM-less UTF-16 of ASCII-ish text is ~half NULs,
+        // all on one byte parity. Anything else NUL-laden is binary.
+        let sample = data.prefix(8192)
+        var evenNULs = 0
+        var oddNULs = 0
+        for (offset, byte) in sample.enumerated() where byte == 0 {
+            if offset.isMultiple(of: 2) { evenNULs += 1 } else { oddNULs += 1 }
+        }
+        if evenNULs + oddNULs > 0 {
+            if data.count % 2 == 0, (evenNULs + oddNULs) * 3 >= sample.count {
+                if oddNULs > evenNULs * 8 {
+                    return String(data: data, encoding: .utf16LittleEndian)
+                }
+                if evenNULs > oddNULs * 8 {
+                    return String(data: data, encoding: .utf16BigEndian)
+                }
+            }
+            return nil
+        }
+
+        // Strict UTF-8 covers ASCII and validates byte structure.
+        if let utf8 = String(data: data, encoding: .utf8) { return utf8 }
         var converted: NSString?
         let encoding = NSString.stringEncoding(
             for: data,

@@ -101,6 +101,11 @@ nonisolated enum LanguageDetector {
             return "Xcode.SourceCodeLanguage.XML"
         }
 
+        // A YAML document-start marker is unambiguous.
+        if trimmed.hasPrefix("---\n") || trimmed.hasPrefix("--- ") {
+            return "Xcode.SourceCodeLanguage.YAML"
+        }
+
         // Brace documents: JSON vs old-style (ASCII) property list. They look
         // alike at the first byte; plists assign with `key = value;`, JSON
         // pairs with `"key": value,`.
@@ -124,7 +129,14 @@ nonisolated enum LanguageDetector {
         ]
         for rawLine in trimmed.split(separator: "\n", maxSplits: 80, omittingEmptySubsequences: true) {
             let line = rawLine.trimmingCharacters(in: .whitespaces)
-            if line.isEmpty || line.hasPrefix("#") { continue }
+            if line.isEmpty { continue }
+            // Preprocessor directives are C-family, not comments; "#include"
+            // etc. have no space after the hash, unlike prose comments.
+            if line.hasPrefix("#include") || line.hasPrefix("#import")
+                || line.hasPrefix("#pragma") || line.hasPrefix("#ifndef") {
+                return "Xcode.SourceCodeLanguage.C"
+            }
+            if line.hasPrefix("#") { continue }
             if shellStarters.contains(where: line.hasPrefix) || line.contains("$(") || line.contains("${") {
                 shell += 1
                 continue
