@@ -128,6 +128,26 @@ struct RedTeam3RegressionTests {
         #expect(theme.style(forNodeTypeName: "xcode.syntax.number")?.color != nil)
     }
 
+    @Test func dExtensionDisambiguatesDepsFromDTrace() async throws {
+        // Compiler-emitted dependency files are make syntax. A bare path list
+        // has nothing to style, so route-assert via make's #-comment rule
+        // (DTrace has no #-comments, only #pragma and /* */).
+        let deps = "# deps generated\nbuild/main.o: src/main.c \\\n  /usr/include/stdio.h \\\n  src/main.h\n"
+        #expect(LanguageDetector.looksLikeMakeDependencies(forTextPrefix: deps))
+        let depSpans = try await spans(deps, ext: "d", uti: "public.dtrace-source", filename: "main.d")
+        #expect(hasSpan(depSpans, type: "xcode.syntax.comment", covering: "# deps generated", in: deps))
+
+        // Real DTrace scripts keep the DTrace spec.
+        let dtrace = "#pragma D option quiet\nsyscall:::entry\n{\n\t@counts[probefunc] = count();\n}\n"
+        #expect(!LanguageDetector.looksLikeMakeDependencies(forTextPrefix: dtrace))
+        let dtraceSpans = try await spans(dtrace, ext: "d", uti: "public.dtrace-source", filename: "trace.d")
+        #expect(!dtraceSpans.isEmpty)
+
+        // Swift-emitted deps use "file.o : deps" with a space before the colon.
+        let swiftDeps = "main.o : /proj/src/main.swift /proj/src/util.swift\n"
+        #expect(LanguageDetector.looksLikeMakeDependencies(forTextPrefix: swiftDeps))
+    }
+
     @Test func proseFileNamedSwiftIsNotTokenizedAsSwift() async throws {
         let prose = "let us go then, you and I\nas the evening spreads\nif only for a while\n"
         let result = try await spans(prose, uti: "public.data", filename: "swift")

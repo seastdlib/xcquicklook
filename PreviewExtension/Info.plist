@@ -44,6 +44,7 @@
 				<string>com.apple.log</string>
 				<string>public.log</string>
 				<string>public.make-source</string>
+				<string>public.dtrace-source</string>
 				<string>public.protobuf-source</string>
 				<string>public.assembly-source</string>
 				<string>public.lex-source</string>

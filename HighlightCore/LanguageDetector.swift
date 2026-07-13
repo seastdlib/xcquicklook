@@ -212,6 +212,22 @@ nonisolated enum LanguageDetector {
         return nil
     }
 
+    /// The .d extension is DTrace in Xcode's tables, but compilers emit
+    /// make-format dependency files with the same extension. A make rule's
+    /// target is a path-ish token before a colon (`build/main.o: src/main.c`);
+    /// DTrace probe descriptions (`syscall:::entry {`) are bare words with
+    /// braces on the same line.
+    static func looksLikeMakeDependencies(forTextPrefix prefix: String) -> Bool {
+        for raw in prefix.split(separator: "\n", omittingEmptySubsequences: true).prefix(5) {
+            let line = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            if line.isEmpty || line.hasPrefix("#") { continue }
+            guard let colon = line.firstIndex(of: ":"), !line.contains("{") else { return false }
+            let target = line[line.startIndex..<colon]
+            return !target.isEmpty && (target.hasSuffix(".o") || target.contains("/") || target.contains("."))
+        }
+        return false
+    }
+
     /// `path_prepend() {` is a POSIX function definition; `func f() {` is not:
     /// the text before "() {" must be one bare identifier.
     private static func isShellFunctionDefinition(_ line: String) -> Bool {

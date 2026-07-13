@@ -122,6 +122,15 @@ actor HighlightEngine {
     }
 
     private func detectLanguage(_ hint: LanguageHint, textPrefix: String, client: SourceModelClient) -> AnyObject? {
+        // .d disambiguation must precede the UTI/extension tables, which
+        // would otherwise route everything to DTrace.
+        if hint.fileExtension?.lowercased() == "d"
+            || hint.contentTypeIdentifiers.contains("public.dtrace-source") {
+            if LanguageDetector.looksLikeMakeDependencies(forTextPrefix: textPrefix),
+               let language = client.language(forIdentifier: "Xcode.SourceCodeLanguage.Makefile") {
+                return language
+            }
+        }
         for uti in hint.contentTypeIdentifiers {
             if let language = client.language(forUTI: uti) { return language }
         }
