@@ -223,14 +223,17 @@ nonisolated enum LanguageDetector {
     static func looksLikeMakeDependencies(forTextPrefix prefix: String) -> Bool {
         var pathLines = 0
         var considered = 0
-        for raw in prefix.split(separator: "\n", omittingEmptySubsequences: true).prefix(12) {
+        for raw in prefix.split(separator: "\n", omittingEmptySubsequences: true) {
             let line = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            // Comment lines don't count against the inspection window, or a
+            // generated header longer than the window hides the rule line.
             if line.isEmpty || line.hasPrefix("#") { continue }
             if line.contains("{") || line.contains(";") { return false }
             considered += 1
+            if considered > 12 { break }
             if let colon = line.firstIndex(of: ":") {
                 let target = line[line.startIndex..<colon].trimmingCharacters(in: .whitespaces)
-                if !target.isEmpty, !target.contains(" "),
+                if !target.isEmpty, !containsUnescapedSpace(target),
                    target.hasSuffix(".o") || target.contains("/") || target.contains(".") {
                     return true
                 }
@@ -239,13 +242,24 @@ nonisolated enum LanguageDetector {
             let core = line.hasSuffix("\\")
                 ? line.dropLast().trimmingCharacters(in: .whitespaces)
                 : line
-            if !core.isEmpty, !core.contains(" "), core.contains("/") || core.contains(".") {
+            if !core.isEmpty, !containsUnescapedSpace(core), core.contains("/") || core.contains(".") {
                 pathLines += 1
             } else {
                 return false
             }
         }
         return considered >= 2 && pathLines == considered
+    }
+
+    /// Make escapes spaces in paths as "\ " (clang -MD emits them for any
+    /// project under a spaced directory); only a bare space disqualifies.
+    private static func containsUnescapedSpace(_ text: String) -> Bool {
+        var previousWasBackslash = false
+        for character in text {
+            if character == " ", !previousWasBackslash { return true }
+            previousWasBackslash = character == "\\"
+        }
+        return false
     }
 
     /// `path_prepend() {` is a POSIX function definition; `func f() {` is not:

@@ -129,7 +129,11 @@ nonisolated enum JSONReformatter {
                     nodeTypeName: "xcode.syntax.number"
                 ))
             case 0x74, 0x66, 0x6E:  // t f n → true/false/null keywords
-                if let keyword = matchKeyword(bytes, at: i) {
+                // Mid-identifier occurrences in malformed input (xtrue,
+                // 1e2true) are not keywords: the preceding OUTPUT byte must
+                // not be identifier-like.
+                if let keyword = matchKeyword(bytes, at: i),
+                   out.last.map({ !isIdentifierByte($0) }) ?? true {
                     let spanStart = utf16Pos
                     for b in keyword.utf8 { append(b) }
                     i += keyword.utf8.count
