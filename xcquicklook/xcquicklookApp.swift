@@ -3,7 +3,7 @@ import SwiftUI
 @main
 struct XCQuickLookApp: App {
     var body: some Scene {
-        Window("xcquicklook", id: "about") {
+        Window("XCQuickLook", id: "about") {
             InstalledView()
         }
         .windowResizability(.contentSize)

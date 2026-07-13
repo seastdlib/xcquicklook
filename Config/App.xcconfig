@@ -1,6 +1,7 @@
 // Host application target.
 
 PRODUCT_BUNDLE_IDENTIFIER = com.seastdlib.xcquicklook
+PRODUCT_NAME = XCQuickLook
 GENERATE_INFOPLIST_FILE = YES
 
 // The App Sandbox requirement applies to the extension, not its host app;

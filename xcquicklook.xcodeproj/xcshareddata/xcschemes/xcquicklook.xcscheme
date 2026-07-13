@@ -16,7 +16,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "CA3AAC9B300448850074DE5D"
-               BuildableName = "xcquicklook.app"
+               BuildableName = "XCQuickLook.app"
                ReferencedContainer = "container:xcquicklook.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -46,7 +46,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "CA3AAC9B300448850074DE5D"
-            BuildableName = "xcquicklook.app"
+            BuildableName = "XCQuickLook.app"
             ReferencedContainer = "container:xcquicklook.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -62,7 +62,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "CA3AAC9B300448850074DE5D"
-            BuildableName = "xcquicklook.app"
+            BuildableName = "XCQuickLook.app"
             ReferencedContainer = "container:xcquicklook.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

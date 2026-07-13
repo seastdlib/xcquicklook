@@ -33,7 +33,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		CA3AAC9C300448850074DE5D /* xcquicklook.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = xcquicklook.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CA3AAC9C300448850074DE5D /* XCQuickLook.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = XCQuickLook.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA3AACA9300448860074DE5D /* xcquicklookTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = xcquicklookTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D000000000000000000000A2 /* PreviewExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PreviewExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		D000000000000000000000B1 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
@@ -122,7 +122,7 @@
 		CA3AAC9D300448850074DE5D /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				CA3AAC9C300448850074DE5D /* xcquicklook.app */,
+				CA3AAC9C300448850074DE5D /* XCQuickLook.app */,
 				CA3AACA9300448860074DE5D /* xcquicklookTests.xctest */,
 				D000000000000000000000A2 /* PreviewExtension.appex */,
 			);
@@ -164,7 +164,7 @@
 			);
 			name = xcquicklook;
 			productName = xcquicklook;
-			productReference = CA3AAC9C300448850074DE5D /* xcquicklook.app */;
+			productReference = CA3AAC9C300448850074DE5D /* XCQuickLook.app */;
 			productType = "com.apple.product-type.application";
 		};
 		CA3AACA8300448860074DE5D /* xcquicklookTests */ = {
