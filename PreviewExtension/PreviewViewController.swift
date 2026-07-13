@@ -320,6 +320,24 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
             resolved[name] = result
             return result
         }
+        // Markdown headings scale by level (H1 > H2 > H3+) using the theme's
+        // own heading/body size ratios; level comes from the leading # count
+        // since the spec emits a single heading node type.
+        var headingFonts: [Int: NSFont] = [:]
+        func headingFont(forLevel level: Int) -> NSFont? {
+            guard !theme.headingScales.isEmpty else { return nil }
+            let index = min(max(level, 1), theme.headingScales.count) - 1
+            if let cached = headingFonts[index] { return cached }
+            let bold = styledFont(bold: true, italic: false)
+            let font = NSFontManager.shared.convert(bold, toSize: bold.pointSize * theme.headingScales[index])
+            headingFonts[index] = font
+            return font
+        }
+        func headingLevel(of range: NSRange) -> Int {
+            let text = (storage.string as NSString).substring(with: range)
+            return text.drop(while: { $0 == " " }).prefix(while: { $0 == "#" }).count
+        }
+
         func applyBatch(_ batch: some Sequence<TokenSpan>) {
             let length = storage.length
             storage.beginEditing()
@@ -329,7 +347,10 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
                 if let color = attrs.color {
                     storage.addAttribute(.foregroundColor, value: color, range: span.range)
                 }
-                if let font = attrs.font {
+                if span.nodeTypeName == "xcode.syntax.markup.heading",
+                   let font = headingFont(forLevel: headingLevel(of: span.range)) {
+                    storage.addAttribute(.font, value: font, range: span.range)
+                } else if let font = attrs.font {
                     storage.addAttribute(.font, value: font, range: span.range)
                 }
             }

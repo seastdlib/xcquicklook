@@ -21,6 +21,11 @@ nonisolated struct Theme: Sendable, Equatable {
     /// Keyed by full node type name, e.g. "xcode.syntax.keyword".
     var styles: [String: Style]
 
+    /// Heading size multipliers relative to body text (index 0 = H1), from
+    /// the theme's Primary/Secondary/Other heading fonts over its normal
+    /// font. Empty when the theme doesn't define markup fonts.
+    var headingScales: [Double] = []
+
     enum ParseError: Error {
         case unreadable(URL)
         case missingSyntaxColors(URL)
@@ -87,7 +92,20 @@ nonisolated struct Theme: Sendable, Equatable {
             }
             styles[entry.type] = style
         }
-        return Theme(styles: styles)
+
+        // Heading sizes, expressed as ratios of the theme's own markup body
+        // size so nothing is hardcoded and any theme's proportions carry over.
+        var theme = Theme(styles: styles)
+        if let normal = fontSize(plist["DVTMarkupTextNormalFont"] as? String), normal > 0 {
+            for key in ["DVTMarkupTextPrimaryHeadingFont",
+                        "DVTMarkupTextSecondaryHeadingFont",
+                        "DVTMarkupTextOtherHeadingFont"] {
+                if let size = fontSize(plist[key] as? String), size > 0 {
+                    theme.headingScales.append(size / normal)
+                }
+            }
+        }
+        return theme
     }
 
     /// "0.607592 0.137526 0.576284 1" → TokenColor. Exactly four finite
@@ -106,5 +124,13 @@ nonisolated struct Theme: Sendable, Equatable {
             return String(value[..<range.lowerBound])
         }
         return value
+    }
+
+    /// "HelveticaNeue-Bold - 24.0" → 24.0
+    private static func fontSize(_ value: String?) -> Double? {
+        guard let value, let range = value.range(of: " - ", options: .backwards) else { return nil }
+        let size = Double(value[range.upperBound...].trimmingCharacters(in: .whitespaces))
+        guard let size, size.isFinite, size > 0 else { return nil }
+        return size
     }
 }

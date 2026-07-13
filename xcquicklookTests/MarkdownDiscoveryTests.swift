@@ -28,6 +28,57 @@ struct MarkdownTypographyTests {
         }
     }
 
+    @Test func installedThemesCarryDescendingHeadingScales() async throws {
+        for dark in [false, true] {
+            let theme = try await engine.theme(dark: dark)
+            let scales = theme.headingScales
+            try #require(!scales.isEmpty)
+            #expect(scales[0] > 1.0)
+            #expect(scales == scales.sorted(by: >), "scales should descend: \(scales)")
+        }
+    }
+
+    @MainActor
+    @Test func headingLevelsRenderAtDescendingSizes() async throws {
+        let doc = "# One\n## Two\n### Three\nbody text\n"
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("xcql-md-h-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let url = dir.appendingPathComponent("h.md")
+        try doc.data(using: .utf8)!.write(to: url)
+
+        let controller = PreviewViewController()
+        _ = controller.view
+        controller.view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)
+        try await controller.preparePreviewOfFile(at: url)
+
+        func findTextView(in view: NSView) -> NSTextView? {
+            if let tv = view as? NSTextView { return tv }
+            for sub in view.subviews { if let tv = findTextView(in: sub) { return tv } }
+            return nil
+        }
+        let storage = try #require(findTextView(in: controller.view)?.textStorage)
+        let ns = doc as NSString
+        func pointSize(at fragment: String) -> CGFloat? {
+            let range = ns.range(of: fragment)
+            guard range.location != NSNotFound, storage.length > range.location else { return nil }
+            return (storage.attributes(at: range.location, effectiveRange: nil)[.font] as? NSFont)?.pointSize
+        }
+
+        let deadline = Date().addingTimeInterval(8)
+        while Date() < deadline {
+            if let one = pointSize(at: "One"), let body = pointSize(at: "body"), one > body { break }
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        let h1 = try #require(pointSize(at: "One"))
+        let h2 = try #require(pointSize(at: "Two"))
+        let h3 = try #require(pointSize(at: "Three"))
+        let body = try #require(pointSize(at: "body"))
+        #expect(h1 > h2)
+        #expect(h2 > h3 || h2 == h3)  // themes may share H2/H3 sizes
+        #expect(h3 > body)
+    }
+
     @MainActor
     @Test func renderedTraitsAppearInLivePreview() async throws {
         let doc = "# Title\n\nnormal *ital* and **bold** words\n"
