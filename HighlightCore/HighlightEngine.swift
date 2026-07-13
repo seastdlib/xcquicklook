@@ -99,22 +99,27 @@ actor HighlightEngine {
 
         var spans: [TokenSpan] = []
         // Iterative pre-order walk; parser trees for minified files can be too
-        // deep for recursion on a cooperative-pool stack.
-        var stack: [(item: any XCQLSourceModelItem, parentStyled: Bool)] = [(root, false)]
-        while let (item, parentStyled) = stack.popLast() {
+        // deep for recursion on a cooperative-pool stack. Resets exist to
+        // restore the default COLOR under color-bearing ancestors (string
+        // interpolation); trait-only ancestors (markdown emphasis/strong)
+        // must NOT trigger resets, or the punch-out would strip the trait
+        // from the styled range's own content.
+        var stack: [(item: any XCQLSourceModelItem, parentColored: Bool)] = [(root, false)]
+        while let (item, parentColored) = stack.popLast() {
             let name = client.nodeTypeName(forId: item.nodeType())
-            let styled = name.map { theme.style(forNodeTypeName: $0) != nil } ?? false
-            if styled {
+            let style = name.flatMap { theme.style(forNodeTypeName: $0) }
+            if style != nil {
                 spans.append(TokenSpan(range: item.range(), nodeTypeName: name))
-            } else if parentStyled {
+            } else if parentColored {
                 spans.append(TokenSpan(range: item.range(), nodeTypeName: nil))
             }
             if let children = item.children(), !children.isEmpty {
                 // A reset was emitted whenever this item is unstyled under a
-                // styled ancestor, so children only see this item's own state.
+                // colored ancestor, so children only see this item's state.
                 // Reverse so popLast() visits children in document order.
+                let colored = style?.color != nil
                 for child in children.reversed() {
-                    stack.append((client.item(child as AnyObject), styled))
+                    stack.append((client.item(child as AnyObject), colored))
                 }
             }
         }

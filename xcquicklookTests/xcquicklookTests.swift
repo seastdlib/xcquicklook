@@ -24,6 +24,11 @@ let stubTheme = Theme(styles: [
     "xcode.syntax.attribute": .init(color: .init(red: 0.5, green: 0.37, blue: 0.01, alpha: 1)),
     "xcode.syntax.preprocessor": .init(color: .init(red: 0.39, green: 0.22, blue: 0.12, alpha: 1)),
     "xcode.syntax.markup.delimiter": .init(color: .init(red: 0.5, green: 0.5, blue: 0.5, alpha: 1)),
+    // Trait-only markdown typography, mirroring Theme.load's synthesis.
+    "xcode.syntax.markup.emphasis": .init(color: nil, italic: true),
+    "xcode.syntax.markup.strong": .init(color: nil, bold: true),
+    "xcode.syntax.markup.heading": .init(color: nil, bold: true),
+    "xcode.syntax.markup.quote": .init(color: nil, italic: true),
 ])
 
 func spans(
@@ -77,6 +82,16 @@ struct ThemeTests {
             #expect(theme.style(forNodeTypeName: "xcode.syntax.string")?.color != nil)
             // Plain must stay unstyled so Quick Look's own text color wins.
             #expect(theme.style(forNodeTypeName: "xcode.syntax.plain") == nil)
+        }
+    }
+
+    @Test func installedThemesSynthesizeMarkdownTypography() async throws {
+        for dark in [false, true] {
+            let theme = try await engine.theme(dark: dark)
+            #expect(theme.style(forNodeTypeName: "xcode.syntax.markup.emphasis")?.italic == true)
+            #expect(theme.style(forNodeTypeName: "xcode.syntax.markup.strong")?.bold == true)
+            #expect(theme.style(forNodeTypeName: "xcode.syntax.markup.heading")?.bold == true)
+            #expect(theme.style(forNodeTypeName: "xcode.syntax.markup.quote")?.italic == true)
         }
     }
 

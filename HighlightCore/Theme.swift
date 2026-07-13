@@ -62,6 +62,31 @@ nonisolated struct Theme: Sendable, Equatable {
         // The plain style would fight Quick Look's own text color; drop it so
         // plain spans reset to the default color instead.
         styles["xcode.syntax.plain"] = nil
+
+        // Markdown typography: the source-editor color table doesn't cover
+        // emphasis/strong/heading/quote, but the theme's top-level markup
+        // keys do. Synthesize trait-only styles — colors stay Quick Look's
+        // default, and bold/italic monospace variants are metrically
+        // identical, so layout never shifts.
+        let markupTraits: [(type: String, fontKey: String, bold: Bool, italic: Bool)] = [
+            ("xcode.syntax.markup.emphasis", "DVTMarkupTextEmphasisFont", false, true),
+            ("xcode.syntax.markup.strong", "DVTMarkupTextStrongFont", true, false),
+            ("xcode.syntax.markup.heading", "DVTMarkupTextPrimaryHeadingFont", true, false),
+            ("xcode.syntax.markup.quote", "DVTMarkupTextEmphasisFont", false, true),
+        ]
+        for entry in markupTraits where styles[entry.type] == nil {
+            var style = Style(color: nil, bold: entry.bold, italic: entry.italic)
+            if let font = plist[entry.fontKey] as? String {
+                let name = fontName(font)
+                let bold = name.contains("Bold") || name.contains("Semibold") || name.contains("Heavy")
+                let italic = name.contains("Italic") || name.contains("Oblique")
+                if bold || italic {
+                    style.bold = bold
+                    style.italic = italic
+                }
+            }
+            styles[entry.type] = style
+        }
         return Theme(styles: styles)
     }
 
