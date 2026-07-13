@@ -86,9 +86,21 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
             throw Self.declineOrFallback(reason: "not decodable as text")
         }
 
-        // Instant, unhighlighted content — the preview is ready as soon as we return.
+        // Minified JSON/JSONL (agent transcripts) gets pretty-printed for
+        // display: format enough head material synchronously that the
+        // viewport is instantly readable, and stream the rest in as appends —
+        // appends never move content the user is already looking at.
+        var displayText = text
+        var pendingLines: [Substring] = []
+        if Self.isJSONFamily(contentType: contentType, url: url),
+           let job = JSONReformatter.job(for: text) {
+            displayText = job.initial
+            pendingLines = job.remaining
+        }
+
+        // Instant content — the preview is ready as soon as we return.
         textView.textStorage?.setAttributedString(
-            NSAttributedString(string: text, attributes: defaultAttributes())
+            NSAttributedString(string: displayText, attributes: defaultAttributes())
         )
 
         var hint = LanguageHint()
@@ -102,8 +114,33 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
 
         applyTask = Task { [weak self, dark = isDarkAppearance] in
             do {
+                // Stream the remaining reformat work: format off the main
+                // actor in chunks, append on it. Line slices are Sendable
+                // views into `text`, so no copies are made up front.
+                var fullText = displayText
+                var index = 0
+                while index < pendingLines.count {
+                    let end = min(index + 400, pendingLines.count)
+                    let slice = Array(pendingLines[index..<end])
+                    let chunk = await Task.detached(priority: .userInitiated) {
+                        var formatted = ""
+                        for line in slice {
+                            formatted += JSONReformatter.reindent(line)
+                            formatted += "\n\n"
+                        }
+                        return formatted
+                    }.value
+                    guard !Task.isCancelled, let self else { return }
+                    self.textView.textStorage?.append(
+                        NSAttributedString(string: chunk, attributes: self.defaultAttributes())
+                    )
+                    fullText += chunk
+                    index = end
+                    await Task.yield()
+                }
+
                 let theme = try await HighlightEngine.shared.theme(dark: dark)
-                let spans = try await HighlightEngine.shared.tokenize(text: text, hint: hint, theme: theme)
+                let spans = try await HighlightEngine.shared.tokenize(text: fullText, hint: hint, theme: theme)
                 DebugLog.log("tokenized \(url.lastPathComponent): \(spans.count) spans")
                 guard !Task.isCancelled, let self else { return }
                 self.spans = spans
@@ -119,6 +156,16 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
                 DebugLog.log("highlight failed for \(url.lastPathComponent): \(error)")
             }
         }
+    }
+
+    /// JSON and JSON Lines files, by declared type or extension.
+    private static func isJSONFamily(contentType: UTType?, url: URL) -> Bool {
+        if let id = contentType?.identifier,
+           id == "public.json" || id == "public.ndjson" {
+            return true
+        }
+        let ext = url.pathExtension.lowercased()
+        return ext == "json" || ext == "jsonl" || ext == "ndjson"
     }
 
     deinit {
