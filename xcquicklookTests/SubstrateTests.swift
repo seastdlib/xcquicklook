@@ -274,6 +274,35 @@ struct ControllerTests {
         #expect(await waitForHighlight(in: controller, fragment: "let") != nil)
     }
 
+    @Test func appearanceFlipSwapsThemePalettes() async throws {
+        let source = "// note\nlet x = 42\n"
+        let url = try tempFile("flip.swift", source.data(using: .utf8)!)
+        let controller = PreviewViewController()
+        _ = controller.view
+        controller.view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)
+        controller.view.appearance = NSAppearance(named: .aqua)
+        try await controller.preparePreviewOfFile(at: url)
+
+        let lightColor = try #require(await waitForHighlight(in: controller, fragment: "let"))
+
+        // Flipping the appearance must re-resolve the theme and repaint:
+        // token colors are fixed per-mode palettes from Xcode's Default
+        // (Light)/(Dark) themes, not dynamic colors.
+        controller.view.appearance = NSAppearance(named: .darkAqua)
+        let deadline = Date().addingTimeInterval(8)
+        var darkColor: NSColor?
+        while Date() < deadline {
+            if let current = await waitForHighlight(in: controller, fragment: "let", timeout: 0.3),
+               current.usingColorSpace(.sRGB) != lightColor.usingColorSpace(.sRGB) {
+                darkColor = current
+                break
+            }
+            try? await Task.sleep(nanoseconds: 200_000_000)
+        }
+        let resolved = try #require(darkColor, "keyword color never changed after appearance flip")
+        #expect(resolved != NSColor.textColor)
+    }
+
     @Test func controllerReuseShowsSecondFileWithoutStaleState() async throws {
         let first = "// first\nlet a = 1\n"
         let second = "# second\nvalue: 42\nother: text\nmore: lines\n"
