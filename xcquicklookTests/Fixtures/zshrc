@@ -1,0 +1,5 @@
+# aliases and exports
+export EDITOR=vim
+alias ll="ls -la"
+setopt AUTO_CD
+source "$HOME/.zsh_plugins"

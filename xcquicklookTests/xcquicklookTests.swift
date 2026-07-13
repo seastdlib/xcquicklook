@@ -5,16 +5,16 @@ import UniformTypeIdentifiers
 /// These tests run in a standalone (host-less, unsandboxed) bundle, so they
 /// load the repo's copy of SourceModel.framework directly and read the
 /// installed Xcode's color themes.
-private let repoRoot = URL(fileURLWithPath: #filePath)
+let repoRoot = URL(fileURLWithPath: #filePath)
     .deletingLastPathComponent()
     .deletingLastPathComponent()
-private let repoFrameworkURL = repoRoot.appendingPathComponent("SourceModel.framework", isDirectory: true)
+let repoFrameworkURL = repoRoot.appendingPathComponent("SourceModel.framework", isDirectory: true)
 
-private let engine = HighlightEngine(frameworkURL: repoFrameworkURL)
+let engine = HighlightEngine(frameworkURL: repoFrameworkURL)
 
 /// A theme whose styled-type set matches Xcode's Default themes, independent
 /// of whether Xcode is installed.
-private let stubTheme = Theme(styles: [
+let stubTheme = Theme(styles: [
     "xcode.syntax.comment": .init(color: .init(red: 0.36, green: 0.42, blue: 0.47, alpha: 1)),
     "xcode.syntax.keyword": .init(color: .init(red: 0.6, green: 0.13, blue: 0.57, alpha: 1), bold: true),
     "xcode.syntax.string": .init(color: .init(red: 0.77, green: 0.1, blue: 0.08, alpha: 1)),
@@ -26,7 +26,7 @@ private let stubTheme = Theme(styles: [
     "xcode.syntax.markup.delimiter": .init(color: .init(red: 0.5, green: 0.5, blue: 0.5, alpha: 1)),
 ])
 
-private func spans(
+func spans(
     _ text: String,
     ext: String? = nil,
     uti: String? = nil,
@@ -48,7 +48,7 @@ private func spans(
 }
 
 /// True when some span of the given node type covers the first occurrence of `fragment`.
-private func hasSpan(_ spans: [TokenSpan], type: String, covering fragment: String, in text: String) -> Bool {
+func hasSpan(_ spans: [TokenSpan], type: String, covering fragment: String, in text: String) -> Bool {
     let target = (text as NSString).range(of: fragment)
     guard target.location != NSNotFound else { return false }
     return spans.contains { span in

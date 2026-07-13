@@ -134,7 +134,8 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
 
     // MARK: Text loading
 
-    private static func readText(at url: URL) -> String? {
+    // Internal (not private) so the test bundle can exercise encoding handling.
+    static func readText(at url: URL) -> String? {
         guard let data = try? Data(contentsOf: url, options: .mappedIfSafe) else { return nil }
         // NUL bytes near the start mean binary content; let the system handle
         // it. UTF-16/32 text is full of NULs, so honor a BOM first.

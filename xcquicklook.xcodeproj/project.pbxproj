@@ -52,6 +52,13 @@
 			);
 			target = D000000000000000000000A1 /* PreviewExtension */;
 		};
+		D000000000000000000000BA /* Exceptions for "PreviewExtension" folder in "xcquicklookTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = CA3AACA8300448860074DE5D /* xcquicklookTests */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -69,6 +76,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				D000000000000000000000B8 /* Exceptions for "PreviewExtension" folder in "PreviewExtension" target */,
+				D000000000000000000000BA /* Exceptions for "PreviewExtension" folder in "xcquicklookTests" target */,
 			);
 			path = PreviewExtension;
 			sourceTree = "<group>";
@@ -171,6 +179,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				CA3AACAC300448860074DE5D /* xcquicklookTests */,
+				D000000000000000000000A6 /* PreviewExtension */,
 				D000000000000000000000A7 /* HighlightCore */,
 			);
 			name = xcquicklookTests;

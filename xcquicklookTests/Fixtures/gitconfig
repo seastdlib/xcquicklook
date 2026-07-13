@@ -1,0 +1,6 @@
+# identity
+[user]
+	name = Example Person
+	email = person@example.org
+[core]
+	autocrlf = input

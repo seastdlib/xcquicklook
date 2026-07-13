@@ -1,0 +1,6 @@
+# config
+name: xcql
+count: 42
+list:
+  - first
+  - second
