@@ -31,6 +31,7 @@ nonisolated enum LanguageDetector {
         "ksh": "Xcode.SourceCodeLanguage.BourneShellScript",
         "dash": "Xcode.SourceCodeLanguage.BourneShellScript",
         "fish": "Xcode.SourceCodeLanguage.BourneShellScript",
+        "zsh-theme": "Xcode.SourceCodeLanguage.BourneShellScript",
         // Dotfiles (.zshrc, .gitconfig, ...) are deliberately NOT listed:
         // extensionless files are classified by content structure instead,
         // so there is no name database to maintain.

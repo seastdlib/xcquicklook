@@ -65,7 +65,16 @@
 				     always win, and binary content is declined at runtime. -->
 				<string>public.data</string>
 				<!-- Dynamic UTIs: deterministic encodings of extensions that no
-				     installed app declares (jsonl, fish, lua, conf, ...). -->
+				     installed app declares (jsonl, fish, lua, conf, d, ...).
+				     Quick Look's provider matching does NOT walk conformance
+				     from dyn types to the public.data claim: each extension we
+				     want served needs its exact dyn identifier listed. -->
+				<string>dyn.ah62d4rv4ge80k</string>
+				<string>dyn.ah62d4rv4ge80255dqf0a</string>
+				<string>dyn.ah62d4rv4ge81y65kfz4gu3prqy</string>
+				<string>dyn.ah62d4rv4ge81k3u</string>
+				<string>dyn.ah62d4rv4ge81g7pr</string>
+				<string>dyn.ah62d4rv4ge80255drq</string>
 				<string>dyn.ah62d4rv4ge80y65tr30a</string>
 				<string>dyn.ah62d4rv4ge80q4pxra</string>
 				<string>dyn.ah62d4rv4ge8027pb</string>
