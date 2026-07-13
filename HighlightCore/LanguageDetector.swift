@@ -213,19 +213,38 @@ nonisolated enum LanguageDetector {
     }
 
     /// The .d extension is DTrace in Xcode's tables, but compilers emit
-    /// make-format dependency files with the same extension. A make rule's
-    /// target is a path-ish token before a colon (`build/main.o: src/main.c`);
-    /// DTrace probe descriptions (`syscall:::entry {`) are bare words with
-    /// braces on the same line.
+    /// make-format dependency files with the same extension. Two shapes count
+    /// as dependencies: a rule line whose target is a path-ish token before a
+    /// colon (`build/main.o: src/main.c`), and rule-less fragments that are
+    /// nothing but path lines with backslash continuations. DTrace probe
+    /// descriptions (`syscall:::entry {`) are bare words with braces and
+    /// statement semicolons.
     static func looksLikeMakeDependencies(forTextPrefix prefix: String) -> Bool {
-        for raw in prefix.split(separator: "\n", omittingEmptySubsequences: true).prefix(5) {
+        var pathLines = 0
+        var considered = 0
+        for raw in prefix.split(separator: "\n", omittingEmptySubsequences: true).prefix(12) {
             let line = raw.trimmingCharacters(in: .whitespacesAndNewlines)
             if line.isEmpty || line.hasPrefix("#") { continue }
-            guard let colon = line.firstIndex(of: ":"), !line.contains("{") else { return false }
-            let target = line[line.startIndex..<colon]
-            return !target.isEmpty && (target.hasSuffix(".o") || target.contains("/") || target.contains("."))
+            if line.contains("{") || line.contains(";") { return false }
+            considered += 1
+            if let colon = line.firstIndex(of: ":") {
+                let target = line[line.startIndex..<colon].trimmingCharacters(in: .whitespaces)
+                if !target.isEmpty, !target.contains(" "),
+                   target.hasSuffix(".o") || target.contains("/") || target.contains(".") {
+                    return true
+                }
+                return false
+            }
+            let core = line.hasSuffix("\\")
+                ? line.dropLast().trimmingCharacters(in: .whitespaces)
+                : line
+            if !core.isEmpty, !core.contains(" "), core.contains("/") || core.contains(".") {
+                pathLines += 1
+            } else {
+                return false
+            }
         }
-        return false
+        return considered >= 2 && pathLines == considered
     }
 
     /// `path_prepend() {` is a POSIX function definition; `func f() {` is not:

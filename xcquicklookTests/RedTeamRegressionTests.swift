@@ -146,6 +146,13 @@ struct RedTeam3RegressionTests {
         // Swift-emitted deps use "file.o : deps" with a space before the colon.
         let swiftDeps = "main.o : /proj/src/main.swift /proj/src/util.swift\n"
         #expect(LanguageDetector.looksLikeMakeDependencies(forTextPrefix: swiftDeps))
+
+        // Rule-less fragments (kernel-style .d output): leading blank line,
+        // nothing but path continuations, no colon anywhere.
+        let fragment = "\nusr/local/include/sys/cdefs.h \\\n\nusr/local/include/kern/thread.h \\\nusr/local/include/mach/kern_return.h \\\n"
+        #expect(LanguageDetector.looksLikeMakeDependencies(forTextPrefix: fragment))
+        let fragmentSpans = try await spans(fragment, ext: "d", uti: "public.dtrace-source", filename: "kern_test.d")
+        _ = fragmentSpans  // routing must not throw; a pure path list styles nothing
     }
 
     @Test func proseFileNamedSwiftIsNotTokenizedAsSwift() async throws {
