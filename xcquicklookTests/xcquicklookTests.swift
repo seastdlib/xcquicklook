@@ -160,6 +160,15 @@ struct DetectionTests {
         #expect(hasSpan(jsonResult, type: "xcode.syntax.keyword", covering: "true", in: json))
     }
 
+    @Test func powerShellAliasesToShell() async throws {
+        let script = "# setup\nfunction Get-Widget {\n    $count = 42\n    Write-Output \"found $count\"\n}\n"
+        for ext in ["ps1", "psm1", "psd1"] {
+            let result = try await spans(script, ext: ext, uti: "dyn.ah62d4rv4ge81a63v")
+            #expect(hasSpan(result, type: "xcode.syntax.comment", covering: "# setup", in: script), "\(ext)")
+            #expect(hasSpan(result, type: "xcode.syntax.number", covering: "42", in: script), "\(ext)")
+        }
+    }
+
     @Test func jsonLinesAliasesToJSON() async throws {
         let text = "{\"k\": 42}\n{\"k\": 43}\n"
         let result = try await spans(text, ext: "jsonl")

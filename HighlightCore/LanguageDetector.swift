@@ -32,6 +32,11 @@ nonisolated enum LanguageDetector {
         "dash": "Xcode.SourceCodeLanguage.BourneShellScript",
         "fish": "Xcode.SourceCodeLanguage.BourneShellScript",
         "zsh-theme": "Xcode.SourceCodeLanguage.BourneShellScript",
+        // PowerShell: the shell spec is the closest fit (# comments, "..."
+        // strings, $variables, and shared keywords like function/if).
+        "ps1": "Xcode.SourceCodeLanguage.BourneShellScript",
+        "psm1": "Xcode.SourceCodeLanguage.BourneShellScript",
+        "psd1": "Xcode.SourceCodeLanguage.BourneShellScript",
         // Dotfiles (.zshrc, .gitconfig, ...) are deliberately NOT listed:
         // extensionless files are classified by content structure instead,
         // so there is no name database to maintain.
