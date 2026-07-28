@@ -58,6 +58,10 @@
 				<string>com.barebones.bbedit.go-source</string>
 				<string>com.barebones.bbedit.ini-configuration</string>
 				<string>com.microsoft.typescript</string>
+				<!-- .ts is typed as MPEG-2 video by macOS; claim it so
+				     TypeScript source reaches us, and decline real video via
+				     the binary-content guard so system video previews survive. -->
+				<string>public.mpeg-2-transport-stream</string>
 				<string>public.ndjson</string>
 				<!-- Catch-all: files nothing else claims (dotfiles like .zprofile,
 				     unknown text formats) are typed public.data and otherwise get

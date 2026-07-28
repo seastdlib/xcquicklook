@@ -160,6 +160,15 @@ struct DetectionTests {
         #expect(hasSpan(jsonResult, type: "xcode.syntax.keyword", covering: "true", in: json))
     }
 
+    @Test func typeScriptTsHighlightsDespiteVideoUTI() async throws {
+        // macOS types .ts as MPEG-2 video; text .ts still reaches us and
+        // highlights via the JavaScript alias.
+        let ts = "// module\nconst count: number = 42;\nfunction greet(name: string) { return `hi ${name}`; }\n"
+        let result = try await spans(ts, ext: "ts", uti: "public.mpeg-2-transport-stream")
+        #expect(hasSpan(result, type: "xcode.syntax.comment", covering: "// module", in: ts))
+        #expect(hasSpan(result, type: "xcode.syntax.number", covering: "42", in: ts))
+    }
+
     @Test func powerShellAliasesToShell() async throws {
         let script = "# setup\nfunction Get-Widget {\n    $count = 42\n    Write-Output \"found $count\"\n}\n"
         for ext in ["ps1", "psm1", "psd1"] {
